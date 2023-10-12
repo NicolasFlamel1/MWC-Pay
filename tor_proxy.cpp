@@ -1058,7 +1058,7 @@ bool TorProxy::validateOption(const char option, const char *value, char *argv[]
 				if(!value || end == value || *end || !isdigit(value[0]) || (value[0] == '0' && isdigit(value[1])) || errno || !port || port > numeric_limits<uint16_t>::max()) {
 				
 					// Display message
-					cout << argv[0] << ": invalid tor SOCKS proxy port -- '" << (value ? value : value) << '\'' << endl;
+					cout << argv[0] << ": invalid tor SOCKS proxy port -- '" << (value ? value : "") << '\'' << endl;
 			
 					// Return false
 					return false;
