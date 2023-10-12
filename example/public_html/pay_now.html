@@ -1,0 +1,226 @@
+<?php
+
+	// Included files
+	require $_SERVER["DOCUMENT_ROOT"] . "/../items.php";
+	
+	// Check if starting a payment
+	if(array_key_exists("REQUEST_METHOD", $_SERVER) === TRUE && $_SERVER["REQUEST_METHOD"] === "POST" && array_key_exists("payment_id", $_GET) === FALSE) {
+	
+		// Check if a session can't be resumed
+		if(array_key_exists(session_name(), $_COOKIE) === FALSE) {
+		
+			// Return bad request response and exit
+			http_response_code(400);
+			exit;
+		}
+		
+		// Check if starting or resuming the session failed
+		if(session_start([
+		
+			// Cookie lifetime
+			"cookie_lifetime" => 100 * 365 * 24 * 60 * 60
+			
+		]) === FALSE) {
+		
+			// Return internal server error response and exit
+			http_response_code(500);
+			exit;
+		}
+		
+		// Check if session's cart doesn't exists
+		if(array_key_exists("cart", $_SESSION) === FALSE) {
+		
+			// Create session's cart
+			$_SESSION["cart"] = [];
+		}
+		
+		// Initialize total price
+		$totalPrice = 0;
+	
+		// Go through all item IDs in the session's cart
+		foreach($_SESSION["cart"] as $id) {
+		
+			// Check if item is valid
+			if(array_key_exists($id, ITEMS) === TRUE) {
+			
+				// Update total price
+				$totalPrice += ITEMS[$id]["price"];
+			}
+		}
+		
+		// Check if no valid items are in the session's cart or the total price is invalid
+		if($totalPrice === 0 || $totalPrice >= PHP_INT_MAX) {
+		
+			// Return bad request response and exit
+			http_response_code(400);
+			exit;
+		}
+		
+		// Check if creating payment failed
+		$createPaymentResponse = file_get_contents("http://localhost:9010/create_payment?" . http_build_query([
+		
+			// Price
+			"price" => rtrim(rtrim(sprintf("%.9f", $totalPrice), "0"), "."),
+			
+			// Required confirmations
+			"required_confirmations" => 5,
+			
+			// Timeout
+			"timeout" => 10 * 60,
+			
+			// Completed callback
+			"completed_callback" => "http://localhost:9012/?" . http_build_query([
+			
+				// Session name
+				session_name() => session_id(),
+			
+				// Items
+				"items" => implode(",", $_SESSION["cart"])
+			])
+		]));
+		
+		if($createPaymentResponse === FALSE) {
+		
+			// Return internal server error response and exit
+			http_response_code(500);
+			exit;
+		}
+		
+		// Try
+		try {
+		
+			// Get payment info from response
+			$paymentInfo = json_decode($createPaymentResponse, TRUE, 2, JSON_THROW_ON_ERROR);
+		}
+		
+		// Catch errors
+		catch(Exception $error) {
+		
+			// Return internal server error response and exit
+			http_response_code(500);
+			exit;
+		}
+		
+		// Check if payment info's payment ID is invalid
+		if(is_array($paymentInfo) === FALSE || array_key_exists("payment_id", $paymentInfo) === FALSE || is_string($paymentInfo["payment_id"]) === FALSE || $paymentInfo["payment_id"] === "") {
+		
+			// Return internal server error response and exit
+			http_response_code(500);
+			exit;
+		}
+		
+		// Clear session's cart
+		$_SESSION["cart"] = [];
+		
+		// Return redirect response and exit
+		header("Location: ./pay_now.html?" . http_build_query([
+		
+			// Payment ID
+			"payment_id" => $paymentInfo["payment_id"]
+			
+		]), TRUE, 303);
+		exit;
+	}
+	
+	// Otherwise check if a payment ID exists
+	else if(array_key_exists("payment_id", $_GET) === TRUE) {
+	
+		// Check if getting payment info failed
+		$getPaymentInfoResponse = file_get_contents("http://localhost:9010/get_payment_info?" . http_build_query([
+		
+			// Payment ID
+			"payment_id" => $_GET["payment_id"]
+		]));
+		
+		if($getPaymentInfoResponse === FALSE) {
+		
+			// Check if payment doesn't exist
+			if(isset($http_response_header) === TRUE && is_array($http_response_header) === TRUE && count($http_response_header) > 0 && preg_match('/HTTP\/[^ ]+ (\d+)/u', $http_response_header[0], $statusCode) === 1 && $statusCode[1] === "400") {
+			
+				// Return bad request response and exit
+				http_response_code(400);
+				exit;
+			}
+			
+			// Return internal server error response and exit
+			http_response_code(500);
+			exit;
+		}
+		
+		// Try
+		try {
+		
+			// Get payment info from response
+			$paymentInfo = json_decode($getPaymentInfoResponse, TRUE, 2, JSON_THROW_ON_ERROR);
+		}
+		
+		// Catch errors
+		catch(Exception $error) {
+		
+			// Return internal server error response and exit
+			http_response_code(500);
+			exit;
+		}
+		
+		// Check if payment info's URL, price, or payment proof address is invalid
+		if(is_array($paymentInfo) === FALSE || array_key_exists("url", $paymentInfo) === FALSE || is_string($paymentInfo["url"]) === FALSE || $paymentInfo["url"] === "" || array_key_exists("price", $paymentInfo) === FALSE || ($paymentInfo["price"] !== NULL && is_string($paymentInfo["price"]) === FALSE) || ($paymentInfo["price"] !== NULL && preg_match('/^(?:0(?:\.\d+)?|[1-9]\d*(?:\.\d+)?)$/u', $paymentInfo["price"]) !== 1) || array_key_exists("payment_proof_address", $paymentInfo) === FALSE || is_string($paymentInfo["payment_proof_address"]) === FALSE || $paymentInfo["payment_proof_address"] === "") {
+		
+			// Return internal server error response and exit
+			http_response_code(500);
+			exit;
+		}
+		
+		// Set URL from the payment info's URL
+		$url = ((array_key_exists("HTTPS", $_SERVER) === TRUE && $_SERVER["HTTPS"] === "on") ? "https" : "http") . "://" . rawurlencode($_SERVER["SERVER_NAME"]) . ":9011/" . rawurlencode($paymentInfo["url"]);
+	}
+	
+	// Otherwise
+	else {
+	
+		// Return bad request response and exit
+		http_response_code(400);
+		exit;
+	}
+?><!DOCTYPE html>
+<html>
+<head>
+	<title>MWC Pay Example</title>
+	
+	<script>
+	
+		// Document DOM content loaded event
+		document.addEventListener("DOMContentLoaded", function() {
+		
+			// Link click event
+			document.getElementsByTagName("a")[0].addEventListener("click", function(event) {
+			
+				// Check if MWC Wallet extension is installed and the event isn't recursive
+				if(typeof MwcWallet !== "undefined" && event["isTrusted"] !== false) {
+				
+					// Prevent default
+					event.preventDefault();
+					
+					// Start transaction with the MWC Wallet extension and catch errors
+					MwcWallet.startTransaction(MwcWallet.MWC_WALLET_TYPE, MwcWallet.MAINNET_NETWORK_TYPE, "<?= preg_replace('/(["\\\\])/u', "\\\\\$1", $url); ?>", <?= ($paymentInfo["price"] !== NULL) ? "\"" . preg_replace('/(["\\\\])/u', "\\\\\$1", $paymentInfo["price"]) . "\"" : "MwcWallet.NO_TRANSACTION_AMOUNT"; ?>, MwcWallet.NO_TRANSACTION_MESSAGE).catch(function(error) {
+					
+						// Trigger click event
+						event["target"].click();
+					});
+				}
+			});
+		});
+	</script>
+</head>
+<body>
+	<h2>Payment Information</h2>
+	<p>Send <?= ($paymentInfo["price"] !== NULL) ? preg_replace('/`/u', "&#x60;", htmlspecialchars($paymentInfo["price"], ENT_QUOTES)) : "some"; ?> MWC to <a target="_blank" href="web+mwc<?= preg_replace('/`/u', "&#x60;", htmlspecialchars($url, ENT_QUOTES)); ?>"><?= preg_replace('/`/u', "&#x60;", htmlspecialchars($url, ENT_QUOTES)); ?></a> to purchase the item(s)</p>
+	<p>Recipient payment proof address: <?= preg_replace('/`/u', "&#x60;", htmlspecialchars($paymentInfo["payment_proof_address"], ENT_QUOTES)); ?></p>
+	<hr>
+	<iframe frameborder="0" src="./payment_status.html?<?= http_build_query([
+		
+		// Payment ID
+		"payment_id" => $_GET["payment_id"]
+	
+	]); ?>"></iframe>
+</body>
+</html>

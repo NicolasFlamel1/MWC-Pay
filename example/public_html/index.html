@@ -1,0 +1,147 @@
+<?php
+
+	// Included files
+	require $_SERVER["DOCUMENT_ROOT"] . "/../items.php";
+	
+	// Check if request is a POST request
+	if(array_key_exists("REQUEST_METHOD", $_SERVER) === TRUE && $_SERVER["REQUEST_METHOD"] === "POST") {
+	
+		// Check if adding an item to the cart
+		if(array_key_exists("id", $_POST) === TRUE) {
+		
+			// Check if item's ID isn't valid
+			if(ctype_digit($_POST["id"]) === FALSE || array_key_exists(intval($_POST["id"]), ITEMS) === FALSE) {
+			
+				// Return bad request response and exit
+				http_response_code(400);
+				exit;
+			}
+		
+			// Check if starting or resuming the session failed
+			if(session_start([
+			
+				// Cookie lifetime
+				"cookie_lifetime" => 100 * 365 * 24 * 60 * 60
+				
+			]) === FALSE) {
+			
+				// Return internal server error response and exit
+				http_response_code(500);
+				exit;
+			}
+			
+			// Append item's ID to the session's cart
+			$_SESSION["cart"][] = intval($_POST["id"]);
+		}
+		
+		// Return redirect response and exit
+		header("Location: ./", TRUE, 303);
+		exit;
+	}
+	
+	// Otherwise check if a session can be resumed
+	else if(array_key_exists(session_name(), $_COOKIE) === TRUE) {
+	
+		// Check if starting or resuming the session failed
+		if(session_start([
+		
+			// Cookie lifetime
+			"cookie_lifetime" => 100 * 365 * 24 * 60 * 60
+			
+		]) === FALSE) {
+		
+			// Return internal server error response and exit
+			http_response_code(500);
+			exit;
+		}
+		
+		// Check if session's cart doesn't exists
+		if(array_key_exists("cart", $_SESSION) === FALSE) {
+		
+			// Create session's cart
+			$_SESSION["cart"] = [];
+		}
+	}
+	
+	// Initialize number of items
+	$numberOfItems = 0;
+	
+	// Check if session is active
+	if(session_status() === PHP_SESSION_ACTIVE) {
+
+		// Go through all item IDs in the session's cart
+		foreach($_SESSION["cart"] as $id) {
+		
+			// Check if item is valid
+			if(array_key_exists($id, ITEMS) === TRUE) {
+			
+				// Increment number of items
+				++$numberOfItems;
+			}
+		}
+	}
+?><!DOCTYPE html>
+<html>
+<head>
+	<title>MWC Pay Example</title>
+</head>
+<body>
+	<h2>Available Items</h2>
+	<?php
+	
+		// Go through all items
+		foreach(ITEMS as $id => $item) {
+		
+			// Display item's info
+			echo "<div>" .
+				"<p><b>" . preg_replace('/`/u', "&#x60;", htmlspecialchars($item["name"], ENT_QUOTES)) . "</b></p>" .
+				"<p>Price: " . rtrim(rtrim(sprintf("%.9f", $item["price"]), "0"), ".") . " MWC</p>" .
+				"<form method=\"post\">" .
+					"<input type=\"hidden\" name=\"id\" value=\"$id\">" .
+					"<button type=\"submit\">Add to cart</button>" .
+				"</form>" .
+			"</div>";
+		}
+	?>
+	<br>
+	<hr>
+	<p>Number of items in cart: <?= $numberOfItems; ?></p>
+	<form method="post" action="./checkout.html">
+		<button type="submit" <?= ($numberOfItems === 0) ? "disabled" : ""; ?>>Checkout</button>
+	</form>
+	<br>
+	<hr>
+	<h2>Purchased Items</h2>
+	<?php
+	
+		// Check if session is active and items have been purchased
+		$itemShown = FALSE;
+		if(session_status() === PHP_SESSION_ACTIVE && array_key_exists("purchased", $_SESSION) === TRUE && count($_SESSION["purchased"]) !== 0) {
+		
+			// Go through all purchased item IDs
+			foreach($_SESSION["purchased"] as $id) {
+			
+				// Check if item is valid
+				if(array_key_exists($id, ITEMS) === TRUE) {
+				
+					// Set item shown
+					$itemShown = TRUE;
+				
+					// Display item's info
+					echo "<div>" .
+						"<p><b>" . preg_replace('/`/u', "&#x60;", htmlspecialchars(ITEMS[$id]["name"], ENT_QUOTES)) . "</b></p>" .
+						"<p>Quote: “" . preg_replace('/`/u', "&#x60;", htmlspecialchars(ITEMS[$id]["quote"], ENT_QUOTES)) . "”</p>" .
+					"</div>";
+				}
+			}
+		}
+		
+		// Check if no items were shown
+		if($itemShown === FALSE) {
+		
+			// Display none
+			echo "<p>None</p>";
+		}
+	?>
+</body>
+</html>

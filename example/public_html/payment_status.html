@@ -1,0 +1,162 @@
+<?php
+
+	// Check if a payment ID exists
+	if(array_key_exists("REQUEST_METHOD", $_SERVER) === TRUE && $_SERVER["REQUEST_METHOD"] === "GET" && array_key_exists("payment_id", $_GET) === TRUE) {
+	
+		// Check if getting payment info failed
+		$getPaymentInfoResponse = file_get_contents("http://localhost:9010/get_payment_info?" . http_build_query([
+		
+			// Payment ID
+			"payment_id" => $_GET["payment_id"]
+		]));
+		
+		if($getPaymentInfoResponse === FALSE) {
+		
+			// Check if payment doesn't exist
+			if(isset($http_response_header) === TRUE && is_array($http_response_header) === TRUE && count($http_response_header) > 0 && preg_match('/HTTP\/[^ ]+ (\d+)/u', $http_response_header[0], $statusCode) === 1 && $statusCode[1] === "400") {
+			
+				// Return bad request response and exit
+				http_response_code(400);
+				exit;
+			}
+		
+			// Set progress and status
+			$progress = 0;
+			$status = "unknown";
+			
+			// Set payment info to nothing
+			$paymentInfo = NULL;
+		}
+		
+		// Otherwise
+		else {
+		
+			// Try
+			$errorOccurred = FALSE;
+			try {
+			
+				// Get payment info from response
+				$paymentInfo = json_decode($getPaymentInfoResponse, TRUE, 2, JSON_THROW_ON_ERROR);
+			}
+			
+			// Catch errors
+			catch(Exception $error) {
+			
+				// Set error occurred
+				$errorOccurred = TRUE;
+			
+				// Set progress and status
+				$progress = 0;
+				$status = "unknown";
+				
+				// Set payment info to nothing
+				$paymentInfo = NULL;
+			}
+			
+			// Check if an error didn't occur
+			if($errorOccurred === FALSE) {
+		
+				// Check if payment info's status, confirmations, required confirmations, or time_remaining is invalid
+				if(is_array($paymentInfo) === FALSE || array_key_exists("status", $paymentInfo) === FALSE || is_string($paymentInfo["status"]) === FALSE || array_key_exists("confirmations", $paymentInfo) === FALSE || is_int($paymentInfo["confirmations"]) === FALSE || $paymentInfo["confirmations"] < 0 || array_key_exists("required_confirmations", $paymentInfo) === FALSE || is_int($paymentInfo["required_confirmations"]) === FALSE || $paymentInfo["required_confirmations"] <= 0 || $paymentInfo["required_confirmations"] < $paymentInfo["confirmations"] || array_key_exists("time_remaining", $paymentInfo) === FALSE || ($paymentInfo["time_remaining"] !== NULL && is_int($paymentInfo["time_remaining"]) === FALSE) || ($paymentInfo["time_remaining"] !== NULL && $paymentInfo["time_remaining"] < 0)) {
+				
+					// Set progress and status
+					$progress = 0;
+					$status = "unknown";
+					
+					// Set payment info to nothing
+					$paymentInfo = NULL;
+				}
+				
+				// Otherwise
+				else {
+			
+					// Check payment info's status
+					switch($paymentInfo["status"]) {
+					
+						// Not received
+						case "Not received":
+						
+							// Set progress and status
+							$progress = 0;
+							$status = "not received";
+							
+							// Break
+							break;
+						
+						// Received
+						case "Received":
+						
+							// Set progress and status
+							$progress = 25;
+							$status = "received, not confirmed";
+							
+							// Break
+							break;
+						
+						// Confirmed
+						case "Confirmed":
+						
+							// Set progress and status
+							$progress = floor(25 + (100 - 25) * $paymentInfo["confirmations"] / $paymentInfo["required_confirmations"]);
+							$status = "confirmed {$paymentInfo["confirmations"]}/{$paymentInfo["required_confirmations"]} time(s)";
+							
+							// Break
+							break;
+						
+						// Completed
+						case "Completed":
+						
+							// Set progress and status
+							$progress = 100;
+							$status = "completed";
+							
+							// Break
+							break;
+						
+						// Expired
+						case "Expired":
+						
+							// Set progress and status
+							$progress = 0;
+							$status = "expired";
+							
+							// Break
+							break;
+						
+						// Default
+						default:
+						
+							// Set progress and status
+							$progress = 0;
+							$status = "unknown";
+							
+							// Break
+							break;
+					}
+				}
+			}
+		}
+	}
+	
+	// Otherwise
+	else {
+	
+		// Return bad request response and exit
+		http_response_code(400);
+		exit;
+	}
+?><!DOCTYPE html>
+<html>
+<head>
+	<?= ($progress !== 100 && ($paymentInfo === NULL || $paymentInfo["status"] !== "Expired")) ? "<meta http-equiv=\"refresh\" content=\"" . (($progress >= 25) ? 30 : 5) . "\">" : ""; ?>
+</head>
+
+<body>
+	<progress <?= ($progress !== 0 || ($paymentInfo !== NULL && $paymentInfo["status"] === "Expired")) ? "value=\"$progress\" max=\"100\"" : ""; ?>></progress>
+	<p>Payment status: <?= $status; ?></p>
+	<?= ($paymentInfo !== NULL && $paymentInfo["status"] === "Not received" && $paymentInfo["time_remaining"] !== NULL) ? "<p>Seconds remaining: " . preg_replace('/`/u', "&#x60;", htmlspecialchars($paymentInfo["time_remaining"], ENT_QUOTES)) . "</p>" : ""; ?>
+	<?= ($progress === 100 || ($paymentInfo !== NULL && $paymentInfo["status"] === "Expired")) ? "<form method=\"post\" action=\"./\" target=\"_parent\">" .
+		"<button type=\"submit\">Return to shop</button>" .
+	"</form>" : ""; ?>
+</body>
+</html>

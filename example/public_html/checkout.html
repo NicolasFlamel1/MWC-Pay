@@ -1,0 +1,144 @@
+<?php
+
+	// Included files
+	require $_SERVER["DOCUMENT_ROOT"] . "/../items.php";
+	
+	// Check if request is a POST request
+	if(array_key_exists("REQUEST_METHOD", $_SERVER) === TRUE && $_SERVER["REQUEST_METHOD"] === "POST") {
+	
+		// Check if removing an item from the cart
+		if(array_key_exists("index", $_POST) === TRUE) {
+	
+			// Check if a session can't be resumed
+			if(array_key_exists(session_name(), $_COOKIE) === FALSE) {
+			
+				// Return bad request response and exit
+				http_response_code(400);
+				exit;
+			}
+			
+			// Check if starting or resuming the session failed
+			if(session_start([
+			
+				// Cookie lifetime
+				"cookie_lifetime" => 100 * 365 * 24 * 60 * 60
+				
+			]) === FALSE) {
+			
+				// Return internal server error response and exit
+				http_response_code(500);
+				exit;
+			}
+			
+			// Check if session's cart doesn't exists
+			if(array_key_exists("cart", $_SESSION) === FALSE) {
+			
+				// Create session's cart
+				$_SESSION["cart"] = [];
+			}
+			
+			// Check if index isn't valid
+			if(ctype_digit($_POST["index"]) === FALSE || array_key_exists(intval($_POST["index"]), $_SESSION["cart"]) === FALSE) {
+			
+				// Return bad request response and exit
+				http_response_code(400);
+				exit;
+			}
+			
+			// Remove item at the index from the session's cart
+			unset($_SESSION["cart"][intval($_POST["index"])]);
+		}
+		
+		// Return redirect response and exit
+		header("Location: ./checkout.html", TRUE, 303);
+		exit;
+	}
+	
+	// Otherwise check if a session can be resumed
+	else if(array_key_exists(session_name(), $_COOKIE) === TRUE) {
+	
+		// Check if starting or resuming the session failed
+		if(session_start([
+		
+			// Cookie lifetime
+			"cookie_lifetime" => 100 * 365 * 24 * 60 * 60
+			
+		]) === FALSE) {
+		
+			// Return internal server error response and exit
+			http_response_code(500);
+			exit;
+		}
+		
+		// Check if session's cart doesn't exists
+		if(array_key_exists("cart", $_SESSION) === FALSE) {
+		
+			// Create session's cart
+			$_SESSION["cart"] = [];
+		}
+	}
+?><!DOCTYPE html>
+<html>
+<head>
+	<title>MWC Pay Example</title>
+</head>
+<body>
+	<h2>Items In Cart</h2>
+	<?php
+	
+		// Initialize total price
+		$totalPrice = 0;
+	
+		// Check if session is active
+		if(session_status() === PHP_SESSION_ACTIVE) {
+		
+			// Go through all item IDs in the session's cart
+			foreach($_SESSION["cart"] as $index => $id) {
+			
+				// Check if item is valid
+				if(array_key_exists($id, ITEMS) === TRUE) {
+				
+					// Get item's price
+					$price = ITEMS[$id]["price"];
+				
+					// Display item's info
+					echo "<div>" .
+						"<p><b>" . preg_replace('/`/u', "&#x60;", htmlspecialchars(ITEMS[$id]["name"], ENT_QUOTES)) . "</b></p>" .
+						"<p>Price: " . rtrim(rtrim(sprintf("%.9f", $price), "0"), ".") . " MWC</p>" .
+						"<form method=\"post\">" .
+							"<input type=\"hidden\" name=\"index\" value=\"$index\">" .
+							"<button type=\"submit\">Remove from cart</button>" .
+						"</form>" .
+					"</div>";
+					
+					// Update total price
+					$totalPrice += $price;
+				}
+			}
+		}
+		
+		// Check if no valid items are in the session's cart
+		if($totalPrice === 0) {
+		
+			// Display none
+			echo "<p>None</p>";
+		}
+		
+		// Otherwise
+		else {
+		
+			// Display line break
+			echo "<br>";
+		}
+	?>
+	<hr>
+	<p>Total price: <?= ($totalPrice >= PHP_INT_MAX) ? "too high, remove some items from cart" : rtrim(rtrim(sprintf("%.9f", $totalPrice), "0"), "."); ?> MWC</p>
+	<form method="post" action="./">
+		<button type="submit">Add more items to cart</button>
+	</form>
+	<br>
+	<form method="post" action="./pay_now.html">
+		<button type="submit" <?= ($totalPrice === 0 || $totalPrice >= PHP_INT_MAX) ? "disabled" : ""; ?>>Pay now</button>
+	</form>
+</body>
+</html>
