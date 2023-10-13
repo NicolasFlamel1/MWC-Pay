@@ -1,6 +1,6 @@
 # MWC Pay Example
 
-This example is a very simple web 1.0 PHP shopping site that demonstrates how to interface with the MWC Pay API to accept MimbleWimble Coin payments.
+This example is a very simple web 1.0 PHP shopping site that demonstrates how to interface with the MWC Pay API to accept MimbleWimble Coin payments. A live version of this example is available [here](https://mwcwallet.com/mwc_pay_example).
 
 ### Nginx Instructions
 The following commands can be ran from inside this directory to run this example locally as `http://mwcpayexample.local` if you're using Nginx as a web server.
