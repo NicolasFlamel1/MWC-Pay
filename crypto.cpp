@@ -769,7 +769,7 @@ bool Crypto::verifySecp256k1CompleteSingleSignerSignatures(const uint8_t seriali
 	// Check if getting other partial signature candidates failed
 	uint8_t otherPartialSignatureCandidateOne[Crypto::SECP256K1_SINGLE_SIGNER_SIGNATURE_SIZE];
 	uint8_t otherPartialSignatureCandidateTwo[Crypto::SECP256K1_SINGLE_SIGNER_SIGNATURE_SIZE];
-	int count = secp256k1_aggsig_subtract_partial_signature(secp256k1_context_no_precomp, otherPartialSignatureCandidateOne, otherPartialSignatureCandidateTwo, completeSignature, partialSignature.data);
+	const int count = secp256k1_aggsig_subtract_partial_signature(secp256k1_context_no_precomp, otherPartialSignatureCandidateOne, otherPartialSignatureCandidateTwo, completeSignature, partialSignature.data);
 	if(count <= 0) {
 	
 		// Return false

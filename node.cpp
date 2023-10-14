@@ -243,38 +243,42 @@ Node::Node(const unordered_map<char, const char *> &providedOptions, const TorPr
 			errorOccurred = true;
 		}
 		
-		// Go through all of the node's peers
-		for(list<MwcValidationNode::Peer>::iterator i = node.getPeers().begin(); i != node.getPeers().end(); ++i) {
+		// Check if an error didn't occur
+		if(!errorOccurred) {
 		
-			// Stop peer
-			i->stop();
+			// Go through all of the node's peers
+			for(list<MwcValidationNode::Peer>::iterator i = node.getPeers().begin(); i != node.getPeers().end(); ++i) {
 			
-			// Check if peer's thread is running
-			if(i->getThread().joinable()) {
-			
-				// Send signal to peer to fail syscalls
-				pthread_kill(i->getThread().native_handle(), SIGUSR1);
+				// Stop peer
+				i->stop();
 				
-				// Try
-				try {
+				// Check if peer's thread is running
+				if(i->getThread().joinable()) {
 				
-					// Wait for peer to finish
-					i->getThread().join();
+					// Send signal to peer to fail syscalls
+					pthread_kill(i->getThread().native_handle(), SIGUSR1);
+					
+					// Try
+					try {
+					
+						// Wait for peer to finish
+						i->getThread().join();
+					}
+					
+					// Catch errors
+					catch(...) {
+					
+						// Set error occurred
+						errorOccurred = true;
+					}
 				}
 				
-				// Catch errors
-				catch(...) {
+				// Check if peer's worker operation is running
+				if(i->isWorkerOperationRunning()) {
 				
 					// Set error occurred
 					errorOccurred = true;
 				}
-			}
-			
-			// Check if peer's worker operation is running
-			if(i->isWorkerOperationRunning()) {
-			
-				// Set error occurred
-				errorOccurred = true;
 			}
 		}
 		
@@ -324,38 +328,42 @@ Node::Node(const unordered_map<char, const char *> &providedOptions, const TorPr
 				errorOccurred = true;
 			}
 			
-			// Go through all of the node's peers
-			for(list<MwcValidationNode::Peer>::iterator j = node.getPeers().begin(); j != node.getPeers().end(); ++j) {
+			// Check if an error didn't occur
+			if(!errorOccurred) {
 			
-				// Stop peer
-				j->stop();
+				// Go through all of the node's peers
+				for(list<MwcValidationNode::Peer>::iterator j = node.getPeers().begin(); j != node.getPeers().end(); ++j) {
 				
-				// Check if peer's thread is running
-				if(j->getThread().joinable()) {
-				
-					// Send signal to peer to fail syscalls
-					pthread_kill(j->getThread().native_handle(), SIGUSR1);
+					// Stop peer
+					j->stop();
 					
-					// Try
-					try {
+					// Check if peer's thread is running
+					if(j->getThread().joinable()) {
 					
-						// Wait for peer to finish
-						j->getThread().join();
+						// Send signal to peer to fail syscalls
+						pthread_kill(j->getThread().native_handle(), SIGUSR1);
+						
+						// Try
+						try {
+						
+							// Wait for peer to finish
+							j->getThread().join();
+						}
+						
+						// Catch errors
+						catch(...) {
+						
+							// Set error occurred
+							errorOccurred = true;
+						}
 					}
 					
-					// Catch errors
-					catch(...) {
+					// Check if peer's worker operation is running
+					if(j->isWorkerOperationRunning()) {
 					
 						// Set error occurred
 						errorOccurred = true;
 					}
-				}
-				
-				// Check if peer's worker operation is running
-				if(j->isWorkerOperationRunning()) {
-				
-					// Set error occurred
-					errorOccurred = true;
 				}
 			}
 			
@@ -432,38 +440,42 @@ Node::Node(const unordered_map<char, const char *> &providedOptions, const TorPr
 				errorOccurred = true;
 			}
 			
-			// Go through all of the node's peers
-			for(list<MwcValidationNode::Peer>::iterator i = node.getPeers().begin(); i != node.getPeers().end(); ++i) {
+			// Check if an error didn't occur
+			if(!errorOccurred) {
 			
-				// Stop peer
-				i->stop();
+				// Go through all of the node's peers
+				for(list<MwcValidationNode::Peer>::iterator i = node.getPeers().begin(); i != node.getPeers().end(); ++i) {
 				
-				// Check if peer's thread is running
-				if(i->getThread().joinable()) {
-				
-					// Send signal to peer to fail syscalls
-					pthread_kill(i->getThread().native_handle(), SIGUSR1);
+					// Stop peer
+					i->stop();
 					
-					// Try
-					try {
+					// Check if peer's thread is running
+					if(i->getThread().joinable()) {
 					
-						// Wait for peer to finish
-						i->getThread().join();
+						// Send signal to peer to fail syscalls
+						pthread_kill(i->getThread().native_handle(), SIGUSR1);
+						
+						// Try
+						try {
+						
+							// Wait for peer to finish
+							i->getThread().join();
+						}
+						
+						// Catch errors
+						catch(...) {
+						
+							// Set error occurred
+							errorOccurred = true;
+						}
 					}
 					
-					// Catch errors
-					catch(...) {
+					// Check if peer's worker operation is running
+					if(i->isWorkerOperationRunning()) {
 					
 						// Set error occurred
 						errorOccurred = true;
 					}
-				}
-				
-				// Check if peer's worker operation is running
-				if(i->isWorkerOperationRunning()) {
-				
-					// Set error occurred
-					errorOccurred = true;
 				}
 			}
 			
@@ -514,38 +526,42 @@ Node::Node(const unordered_map<char, const char *> &providedOptions, const TorPr
 			errorOccurred = true;
 		}
 		
-		// Go through all of the node's peers
-		for(list<MwcValidationNode::Peer>::iterator i = node.getPeers().begin(); i != node.getPeers().end(); ++i) {
+		// Check if an error didn't occur
+		if(!errorOccurred) {
 		
-			// Stop peer
-			i->stop();
+			// Go through all of the node's peers
+			for(list<MwcValidationNode::Peer>::iterator i = node.getPeers().begin(); i != node.getPeers().end(); ++i) {
 			
-			// Check if peer's thread is running
-			if(i->getThread().joinable()) {
-			
-				// Send signal to peer to fail syscalls
-				pthread_kill(i->getThread().native_handle(), SIGUSR1);
+				// Stop peer
+				i->stop();
 				
-				// Try
-				try {
+				// Check if peer's thread is running
+				if(i->getThread().joinable()) {
 				
-					// Wait for peer to finish
-					i->getThread().join();
+					// Send signal to peer to fail syscalls
+					pthread_kill(i->getThread().native_handle(), SIGUSR1);
+					
+					// Try
+					try {
+					
+						// Wait for peer to finish
+						i->getThread().join();
+					}
+					
+					// Catch errors
+					catch(...) {
+					
+						// Set error occurred
+						errorOccurred = true;
+					}
 				}
 				
-				// Catch errors
-				catch(...) {
+				// Check if peer's worker operation is running
+				if(i->isWorkerOperationRunning()) {
 				
 					// Set error occurred
 					errorOccurred = true;
 				}
-			}
-			
-			// Check if peer's worker operation is running
-			if(i->isWorkerOperationRunning()) {
-			
-				// Set error occurred
-				errorOccurred = true;
 			}
 		}
 		
@@ -585,32 +601,6 @@ Node::~Node() {
 	
 		// Display message
 		osyncstream(cout) << "Waiting for node to finish failed" << endl;
-		
-		// Go through all of the node's peers
-		for(list<MwcValidationNode::Peer>::iterator i = node.getPeers().begin(); i != node.getPeers().end(); ++i) {
-		
-			// Stop peer
-			i->stop();
-			
-			// Check if peer's thread is running
-			if(i->getThread().joinable()) {
-			
-				// Send signal to peer to fail syscalls
-				pthread_kill(i->getThread().native_handle(), SIGUSR1);
-				
-				// Try
-				try {
-				
-					// Wait for peer to finish
-					i->getThread().join();
-				}
-				
-				// Catch errors
-				catch(...) {
-				
-				}
-			}
-		}
 		
 		// Exit failure
 		exit(EXIT_FAILURE);
