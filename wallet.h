@@ -41,13 +41,13 @@ class Wallet final {
 		// Get Bulletproof
 		bool getBulletproof(uint8_t bulletproof[Crypto::BULLETPROOF_SIZE], const uint64_t identifierPath, const uint64_t value) const;
 		
-		// Get tor payment proof address
+		// Get Tor payment proof address
 		string getTorPaymentProofAddress(const uint64_t index) const;
 		
-		// Get tor payment proof address public key
+		// Get Tor payment proof address public key
 		bool getTorPaymentProofAddressPublicKey(uint8_t publicKey[Crypto::ED25519_PUBLIC_KEY_SIZE], const uint64_t index) const;
 		
-		// Get tor payment proof signature
+		// Get Tor payment proof signature
 		bool getTorPaymentProofSignature(uint8_t signature[Crypto::ED25519_SIGNATURE_SIZE], const uint64_t index, const uint8_t kernelCommitment[Crypto::COMMITMENT_SIZE], const char *senderAddress, const uint64_t value) const;
 		
 		// Get MQS payment proof address

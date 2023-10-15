@@ -954,7 +954,7 @@ void PrivateServer::handleGetPaymentInfoRequest(evhttp_request *request) {
 	// Get payment proof index from payment's unique number
 	const uint64_t &paymentProofIndex = get<0>(paymentInfo);
 	
-	// Get wallet's tor payment proof address at the payment proof index
+	// Get wallet's Tor payment proof address at the payment proof index
 	const string paymentProofAddress = wallet.getTorPaymentProofAddress(paymentProofIndex);
 	
 	// Get payment's price as a string

@@ -845,7 +845,7 @@ void PublicServer::handleGenericRequest(evhttp_request *request) {
 					string paymentProofAddress;
 					try {
 					
-						// Get wallet's tor payment proof address at the payment proof index
+						// Get wallet's Tor payment proof address at the payment proof index
 						paymentProofAddress = wallet.getTorPaymentProofAddress(paymentProofIndex);
 					}
 					
@@ -1000,7 +1000,7 @@ void PublicServer::handleGenericRequest(evhttp_request *request) {
 							// Try
 							try {
 						
-								// Check if getting wallet's tor payment proof address public key at the payment proof index failed
+								// Check if getting wallet's Tor payment proof address public key at the payment proof index failed
 								uint8_t paymentProofAddressPublicKey[Crypto::ED25519_PUBLIC_KEY_SIZE];
 								if(!wallet.getTorPaymentProofAddressPublicKey(paymentProofAddressPublicKey, paymentProofIndex)) {
 								
@@ -1283,7 +1283,7 @@ void PublicServer::handleGenericRequest(evhttp_request *request) {
 																		// Otherwise
 																		else {
 																		
-																			// Set sender payment proof address to the slate's sender payment proof address public key as a tor address
+																			// Set sender payment proof address to the slate's sender payment proof address public key as a Tor address
 																			senderPaymentProofAddress = Tor::ed25519PublicKeyToAddress(slate.getSenderPaymentProofAddressPublicKey().data());
 																		}
 																		

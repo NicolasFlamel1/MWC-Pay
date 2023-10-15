@@ -14,13 +14,13 @@ using namespace std;
 
 // Constants
 
-// Check if tor is enabled
+// Check if Tor is enabled
 #ifdef TOR_ENABLE
 
 	// Data directory size
 	static const size_t DATA_DIRECTORY_SIZE = 20;
 
-	// Default tor SOCKS proxy port
+	// Default Tor SOCKS proxy port
 	static const char *DEFAULT_TOR_SOCKS_PROXY_PORT = "9050";
 #endif
 
@@ -40,61 +40,61 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions) :
 	configuration(tor_main_configuration_new(), tor_main_configuration_free)
 {
 
-	// Check if tor is enabled
+	// Check if Tor is enabled
 	#ifdef TOR_ENABLE
 	
 		// Display message
-		osyncstream(cout) << "Starting tor proxy" << endl;
+		osyncstream(cout) << "Starting Tor proxy" << endl;
 		
-		// Check if a tor SOCKS proxy port is provided but not a tor SOCKS proxy address
+		// Check if a Tor SOCKS proxy port is provided but not a Tor SOCKS proxy address
 		if(providedOptions.contains('x') && !providedOptions.contains('s')) {
 		
 			// Throw exception
-			throw runtime_error("No address provided for the tor SOCKS proxy port");
+			throw runtime_error("No address provided for the Tor SOCKS proxy port");
 		}
 		
-		// Check if tor bridge is provided and so is a SOCKS proxy address
+		// Check if Tor bridge is provided and so is a SOCKS proxy address
 		if(providedOptions.contains('b') && providedOptions.contains('s')) {
 		
 			// Throw exception
-			throw runtime_error("Tor bridge can't be used with an external tor SOCKS proxy");
+			throw runtime_error("Tor bridge can't be used with an external Tor SOCKS proxy");
 		}
 		
-		// Check if a tor transport plugin is provided but not a tor bridge
+		// Check if a Tor transport plugin is provided but not a Tor bridge
 		if(providedOptions.contains('g') && !providedOptions.contains('b')) {
 		
 			// Throw exception
-			throw runtime_error("No bridge provided for the tor transport plugin");
+			throw runtime_error("No bridge provided for the Tor transport plugin");
 		}
 		
-		// Check if tor transport plugin is provided and so is a SOCKS proxy address
+		// Check if Tor transport plugin is provided and so is a SOCKS proxy address
 		if(providedOptions.contains('g') && providedOptions.contains('s')) {
 		
 			// Throw exception
-			throw runtime_error("Tor transport plugin can't be used with an external tor SOCKS proxy");
+			throw runtime_error("Tor transport plugin can't be used with an external Tor SOCKS proxy");
 		}
 		
-		// Check if a tor SOCKS proxy address is provided
+		// Check if a Tor SOCKS proxy address is provided
 		if(providedOptions.contains('s')) {
 			
-			// Get tor SOCKS proxy address from provided options
+			// Get Tor SOCKS proxy address from provided options
 			const char *torSocksProxyAddress = providedOptions.at('s');
 			
 			// Display message
-			osyncstream(cout) << "Using provided tor SOCKS proxy address: " << torSocksProxyAddress << endl;
+			osyncstream(cout) << "Using provided Tor SOCKS proxy address: " << torSocksProxyAddress << endl;
 			
-			// Get tor SOCKS proxy port from provided options
+			// Get Tor SOCKS proxy port from provided options
 			const char *torSocksProxyPort = providedOptions.contains('x') ? providedOptions.at('x') : DEFAULT_TOR_SOCKS_PROXY_PORT;
 			
-			// Check if a tor SOCKS proxy port is provided
+			// Check if a Tor SOCKS proxy port is provided
 			if(providedOptions.contains('x')) {
 			
 				// Display message
-				osyncstream(cout) << "Using provided tor SOCKS proxy port: " << torSocksProxyPort << endl;
+				osyncstream(cout) << "Using provided Tor SOCKS proxy port: " << torSocksProxyPort << endl;
 			}
 			
 			// Display message
-			osyncstream(cout) << "Connecting to the tor SOCKS proxy" << endl;
+			osyncstream(cout) << "Connecting to the Tor SOCKS proxy" << endl;
 			
 			// Set hints
 			const addrinfo hints = {
@@ -109,12 +109,12 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions) :
 				.ai_socktype = SOCK_STREAM,
 			};
 			
-			// Check if getting address info for the tor SOCKS proxy failed
+			// Check if getting address info for the Tor SOCKS proxy failed
 			addrinfo *addressInfo;
 			if(getaddrinfo(torSocksProxyAddress, torSocksProxyPort, &hints, &addressInfo)) {
 			
 				// Throw exception
-				throw runtime_error("Getting address info for the tor SOCKS proxy failed");
+				throw runtime_error("Getting address info for the Tor SOCKS proxy failed");
 			}
 			
 			// Automatically free address info when done
@@ -164,11 +164,11 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions) :
 				}
 			}
 			
-			// Check if connecting to the tor SOCKS proxy failed
+			// Check if connecting to the Tor SOCKS proxy failed
 			if(!connected) {
 			
 				// Throw exception
-				throw runtime_error("Connecting to the tor SOCKS proxy failed");
+				throw runtime_error("Connecting to the Tor SOCKS proxy failed");
 			}
 			
 			// Set SOCKS address and port
@@ -176,7 +176,7 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions) :
 			socksPort = torSocksProxyPort;
 			
 			// Display message
-			osyncstream(cout) << "Connected to the tor SOCKS proxy" << endl;
+			osyncstream(cout) << "Connected to the Tor SOCKS proxy" << endl;
 			
 			// Display message
 			osyncstream(cout) << "Tor proxy started" << endl;
@@ -189,7 +189,7 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions) :
 			if(!configuration) {
 			
 				// Throw exception
-				throw runtime_error("Creating tor proxy configuration failed");
+				throw runtime_error("Creating Tor proxy configuration failed");
 			}
 			
 			// Check if creating random data directory bytes failed
@@ -197,7 +197,7 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions) :
 			if(RAND_bytes_ex(nullptr, dataDirectoryBytes, sizeof(dataDirectoryBytes), RAND_DRBG_STRENGTH) != 1) {
 			
 				// Throw exception
-				throw runtime_error("Creating random tor proxy data directory bytes failed");
+				throw runtime_error("Creating random Tor proxy data directory bytes failed");
 			}
 			
 			// Try
@@ -210,7 +210,7 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions) :
 				if(!filesystem::create_directory(dataDirectory)) {
 				
 					// Throw exception
-					throw runtime_error("Creating tor proxy data directory failed");
+					throw runtime_error("Creating Tor proxy data directory failed");
 				}
 			}
 			
@@ -218,13 +218,13 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions) :
 			catch(...) {
 			
 				// Throw exception
-				throw runtime_error("Creating tor proxy data directory failed");
+				throw runtime_error("Creating Tor proxy data directory failed");
 			}
 			
-			// Get tor bridge from provided options
+			// Get Tor bridge from provided options
 			const char *torBridge = providedOptions.contains('b') ? providedOptions.at('b') : nullptr;
 			
-			// Get tor transport plugin from provided options
+			// Get Tor transport plugin from provided options
 			const char *torTransportPlugin = providedOptions.contains('g') ? providedOptions.at('g') : nullptr;
 			
 			// Try
@@ -264,11 +264,11 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions) :
 					"__DisableSignalHandlers", "1"
 				};
 				
-				// Check if a tor bridge is provided
+				// Check if a Tor bridge is provided
 				if(torBridge) {
 				
 					// Display message
-					osyncstream(cout) << "Using provided tor bridge: " << torBridge << endl;
+					osyncstream(cout) << "Using provided Tor bridge: " << torBridge << endl;
 					
 					// Add use bridge and bridge arguments to arguments
 					arguments.push_back("UseBridges");
@@ -277,11 +277,11 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions) :
 					arguments.push_back(torBridge);
 				}
 				
-				// Check if a tor transport plugin is provided
+				// Check if a Tor transport plugin is provided
 				if(torTransportPlugin) {
 				
 					// Display message
-					osyncstream(cout) << "Using provided tor transport plugin: " << torTransportPlugin << endl;
+					osyncstream(cout) << "Using provided Tor transport plugin: " << torTransportPlugin << endl;
 					
 					// Add client transport plugin arguments to arguments
 					arguments.push_back("ClientTransportPlugin");
@@ -299,7 +299,7 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions) :
 				filesystem::remove(dataDirectory);
 				
 				// Throw exception
-				throw runtime_error("Setting tor proxy arguments failed");
+				throw runtime_error("Setting Tor proxy arguments failed");
 			}
 			
 			// Check if applying arguments failed
@@ -309,7 +309,7 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions) :
 				filesystem::remove(dataDirectory);
 				
 				// Throw exception
-				throw runtime_error("Applying tor proxy arguments failed");
+				throw runtime_error("Applying Tor proxy arguments failed");
 			}
 			
 			// Check if getting control socket failed
@@ -320,7 +320,7 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions) :
 				filesystem::remove(dataDirectory);
 				
 				// Throw exception
-				throw runtime_error("Getting tor proxy control socket failed");
+				throw runtime_error("Getting Tor proxy control socket failed");
 			}
 			
 			// Try
@@ -340,7 +340,7 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions) :
 				filesystem::remove(dataDirectory);
 				
 				// Throw exception
-				throw runtime_error("Creating tor proxy main thread failed");
+				throw runtime_error("Creating Tor proxy main thread failed");
 			}
 			
 			// Check if main thread is invalid
@@ -375,7 +375,7 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions) :
 				Common::blockSignals();
 				
 				// Display message
-				osyncstream(cout) << "Sending authenticate request to tor proxy failed" << endl;
+				osyncstream(cout) << "Sending authenticate request to Tor proxy failed" << endl;
 				
 				// Check if closing control socket was successful
 				if(!close(controlSocket)) {
@@ -417,7 +417,7 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions) :
 				Common::blockSignals();
 				
 				// Display message
-				osyncstream(cout) << "Authenticating with tor proxy failed" << endl;
+				osyncstream(cout) << "Authenticating with Tor proxy failed" << endl;
 				
 				// Check if closing control socket was successful
 				if(!close(controlSocket)) {
@@ -458,7 +458,7 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions) :
 				Common::blockSignals();
 				
 				// Display message
-				osyncstream(cout) << "Sending get SOCKS info request to tor proxy failed" << endl;
+				osyncstream(cout) << "Sending get SOCKS info request to Tor proxy failed" << endl;
 				
 				// Check if closing control socket was successful
 				if(!close(controlSocket)) {
@@ -501,7 +501,7 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions) :
 				Common::blockSignals();
 				
 				// Display message
-				osyncstream(cout) << "Getting SOCKS info from tor proxy failed" << endl;
+				osyncstream(cout) << "Getting SOCKS info from Tor proxy failed" << endl;
 				
 				// Check if closing control socket was successful
 				if(!close(controlSocket)) {
@@ -543,7 +543,7 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions) :
 				Common::blockSignals();
 				
 				// Display message
-				osyncstream(cout) << "Getting SOCKS info from tor proxy failed" << endl;
+				osyncstream(cout) << "Getting SOCKS info from Tor proxy failed" << endl;
 				
 				// Check if closing control socket was successful
 				if(!close(controlSocket)) {
@@ -589,7 +589,7 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions) :
 			}
 			
 			// Display message
-			osyncstream(cout) << "Connecting to the tor network" << flush;
+			osyncstream(cout) << "Connecting to the Tor network" << flush;
 			
 			// While not connected
 			for(int i = 0;; ++i) {
@@ -601,7 +601,7 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions) :
 					Common::blockSignals();
 					
 					// Display message
-					osyncstream(cout) << endl << "Sending get connection info request to tor proxy failed" << endl;
+					osyncstream(cout) << endl << "Sending get connection info request to Tor proxy failed" << endl;
 					
 					// Check if closing control socket was successful
 					if(!close(controlSocket)) {
@@ -643,7 +643,7 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions) :
 					Common::blockSignals();
 					
 					// Display message
-					osyncstream(cout) << endl << "Getting connection info from tor proxy failed" << endl;
+					osyncstream(cout) << endl << "Getting connection info from Tor proxy failed" << endl;
 					
 					// Check if closing control socket was successful
 					if(!close(controlSocket)) {
@@ -696,7 +696,7 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions) :
 			}
 			
 			// Display message
-			osyncstream(cout) << endl << "Connected to the tor network" << endl;
+			osyncstream(cout) << endl << "Connected to the Tor network" << endl;
 			
 			// Try
 			try {
@@ -714,7 +714,7 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions) :
 					Common::blockSignals();
 					
 					// Display message
-					osyncstream(cout) << "Starting tor proxy failed" << endl;
+					osyncstream(cout) << "Starting Tor proxy failed" << endl;
 					
 					// Check if closing control socket was successful
 					if(!close(controlSocket)) {
@@ -759,7 +759,7 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions) :
 				Common::blockSignals();
 				
 				// Display message
-				osyncstream(cout) << "Starting tor proxy failed" << endl;
+				osyncstream(cout) << "Starting Tor proxy failed" << endl;
 				
 				// Check if closing control socket was successful
 				if(!close(controlSocket)) {
@@ -799,11 +799,11 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions) :
 // Destructor
 TorProxy::~TorProxy() {
 
-	// Check if tor is enabled
+	// Check if Tor is enabled
 	#ifdef TOR_ENABLE
 	
 		// Display message
-		osyncstream(cout) << "Closing tor proxy" << endl;
+		osyncstream(cout) << "Closing Tor proxy" << endl;
 		
 		// Initialize error occurred
 		bool errorOccurred = false;
@@ -818,7 +818,7 @@ TorProxy::~TorProxy() {
 				if(write(controlSocket, "QUIT\r\n", sizeof("QUIT\r\n") - sizeof('\0')) != sizeof("QUIT\r\n") - sizeof('\0')) {
 				
 					// Display message
-					osyncstream(cout) << "Sending quit request to tor proxy failed" << endl;
+					osyncstream(cout) << "Sending quit request to Tor proxy failed" << endl;
 					
 					// Check if closing control socket was successful
 					if(!close(controlSocket)) {
@@ -860,7 +860,7 @@ TorProxy::~TorProxy() {
 					if(read(controlSocket, quitResponse, sizeof(quitResponse)) != sizeof(quitResponse) || memcmp(quitResponse, "250 closing connection\r\n", sizeof("250 closing connection\r\n") - sizeof('\0'))) {
 					
 						// Display message
-						osyncstream(cout) << "Quitting tor proxy failed" << endl;
+						osyncstream(cout) << "Quitting Tor proxy failed" << endl;
 						
 						// Check if closing control socket was successful
 						if(!close(controlSocket)) {
@@ -907,7 +907,7 @@ TorProxy::~TorProxy() {
 			catch(...) {
 			
 				// Display message
-				osyncstream(cout) << "Waiting for tor proxy to finish failed" << endl;
+				osyncstream(cout) << "Waiting for Tor proxy to finish failed" << endl;
 				
 				// Close control socket
 				close(controlSocket);
@@ -932,7 +932,7 @@ TorProxy::~TorProxy() {
 			if(close(controlSocket)) {
 			
 				// Display message
-				osyncstream(cout) << "Closing tor proxy control socket failed" << endl;
+				osyncstream(cout) << "Closing Tor proxy control socket failed" << endl;
 				
 				// Set error occurred
 				errorOccurred = true;
@@ -952,7 +952,7 @@ TorProxy::~TorProxy() {
 			catch(...) {
 			
 				// Display message
-				osyncstream(cout) << "Removing tor proxy data directory failed" << endl;
+				osyncstream(cout) << "Removing Tor proxy data directory failed" << endl;
 				
 				// Set error occurred
 				errorOccurred = true;
@@ -991,7 +991,7 @@ vector<option> TorProxy::getOptions() {
 	// Return options
 	return {
 	
-		// Check if tor is enabled
+		// Check if Tor is enabled
 		#ifdef TOR_ENABLE
 		
 			// Tor SOCKS proxy address
@@ -1012,13 +1012,13 @@ vector<option> TorProxy::getOptions() {
 // Display options help
 void TorProxy::displayOptionsHelp() {
 
-	// Check if tor is enabled
+	// Check if Tor is enabled
 	#ifdef TOR_ENABLE
 	
 		// Display message
-		cout << "\t-s, --tor_socks_proxy_address\tSets the external tor SOCKS proxy address to use instead of the built-in one (example: localhost)" << endl;
-		cout << "\t-x, --tor_socks_proxy_port\tSets the port to use for the external tor SOCKS proxy address (default: " << DEFAULT_TOR_SOCKS_PROXY_PORT << ')' << endl;
-		cout << "\t-b, --tor_bridge\t\tSets the bridge to use for relaying into the tor network (example: obfs4 1.2.3.4:12345)" << endl;
+		cout << "\t-s, --tor_socks_proxy_address\tSets the external Tor SOCKS proxy address to use instead of the built-in one (example: localhost)" << endl;
+		cout << "\t-x, --tor_socks_proxy_port\tSets the port to use for the external Tor SOCKS proxy address (default: " << DEFAULT_TOR_SOCKS_PROXY_PORT << ')' << endl;
+		cout << "\t-b, --tor_bridge\t\tSets the bridge to use for relaying into the Tor network (example: obfs4 1.2.3.4:12345)" << endl;
 		cout << "\t-g, --tor_transport_plugin\tSets the transport plugin to use to forward traffic to the bridge (example: obfs4 exec /usr/bin/obfs4proxy)" << endl;
 	#endif
 }
@@ -1026,7 +1026,7 @@ void TorProxy::displayOptionsHelp() {
 // Validate option
 bool TorProxy::validateOption(const char option, const char *value, char *argv[]) {
 
-	// Check if tor is enabled
+	// Check if Tor is enabled
 	#ifdef TOR_ENABLE
 	
 		// Check option
@@ -1035,11 +1035,11 @@ bool TorProxy::validateOption(const char option, const char *value, char *argv[]
 			// Tor SOCKS proxy address
 			case 's':
 			
-				// Check if tor SOCKS proxy address is invalid
+				// Check if Tor SOCKS proxy address is invalid
 				if(!value || !strlen(value)) {
 				
 					// Display message
-					cout << argv[0] << ": invalid tor SOCKS proxy address -- '" << (value ? value : "") << '\'' << endl;
+					cout << argv[0] << ": invalid Tor SOCKS proxy address -- '" << (value ? value : "") << '\'' << endl;
 			
 					// Return false
 					return false;
@@ -1051,14 +1051,14 @@ bool TorProxy::validateOption(const char option, const char *value, char *argv[]
 			// Tor SOCKS proxy port
 			case 'x': {
 			
-				// Check if tor SOCKS proxy port is invalid
+				// Check if Tor SOCKS proxy port is invalid
 				char *end;
 				errno = 0;
 				const unsigned long port = value ? strtoul(value, &end, Common::DECIMAL_NUMBER_BASE) : 0;
 				if(!value || end == value || *end || !isdigit(value[0]) || (value[0] == '0' && isdigit(value[1])) || errno || !port || port > numeric_limits<uint16_t>::max()) {
 				
 					// Display message
-					cout << argv[0] << ": invalid tor SOCKS proxy port -- '" << (value ? value : "") << '\'' << endl;
+					cout << argv[0] << ": invalid Tor SOCKS proxy port -- '" << (value ? value : "") << '\'' << endl;
 			
 					// Return false
 					return false;
@@ -1071,11 +1071,11 @@ bool TorProxy::validateOption(const char option, const char *value, char *argv[]
 			// Tor bridge
 			case 'b':
 			
-				// Check if tor bridge is invalid
+				// Check if Tor bridge is invalid
 				if(!value || !strlen(value)) {
 				
 					// Display message
-					cout << argv[0] << ": invalid tor bridge -- '" << (value ? value : "") << '\'' << endl;
+					cout << argv[0] << ": invalid Tor bridge -- '" << (value ? value : "") << '\'' << endl;
 			
 					// Return false
 					return false;
@@ -1087,11 +1087,11 @@ bool TorProxy::validateOption(const char option, const char *value, char *argv[]
 			// Tor transport plugin
 			case 'g':
 			
-				// Check if tor transport plugin is invalid
+				// Check if Tor transport plugin is invalid
 				if(!value || !strlen(value)) {
 				
 					// Display message
-					cout << argv[0] << ": invalid tor transport plugin -- '" << (value ? value : "") << '\'' << endl;
+					cout << argv[0] << ": invalid Tor transport plugin -- '" << (value ? value : "") << '\'' << endl;
 			
 					// Return false
 					return false;
@@ -1109,7 +1109,7 @@ bool TorProxy::validateOption(const char option, const char *value, char *argv[]
 // Run
 void TorProxy::run() {
 
-	// Check if running tor failed
+	// Check if running Tor failed
 	if(tor_run_main(configuration.get())) {
 	
 		// Try

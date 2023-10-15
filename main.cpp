@@ -125,7 +125,7 @@ int main(int argc, char *argv[]) {
 			{}
 		});
 		
-		// Add tor proxy options to list
+		// Add Tor proxy options to list
 		const vector torProxyOptions = TorProxy::getOptions();
 		options.insert(options.begin(), torProxyOptions.begin(), torProxyOptions.end());
 		
@@ -259,7 +259,7 @@ int main(int argc, char *argv[]) {
 							break;
 					}
 					
-					// Check if validating tor proxy option failed
+					// Check if validating Tor proxy option failed
 					if(!TorProxy::validateOption(option, optarg, argv)) {
 					
 						// Display options help
@@ -528,7 +528,7 @@ int main(int argc, char *argv[]) {
 			}
 		}
 		
-		// Create tor proxy
+		// Create Tor proxy
 		static const TorProxy torProxy(providedOptions);
 		
 		// Create node
@@ -674,7 +674,7 @@ void displayOptionsHelp(char *argv[]) {
 	cout << "\t-l, --show_completed_payments\tDisplays all completed payments" << endl;
 	cout << "\t-i, --show_payment\t\tDisplays the payment with a specified ID" << endl;
 	
-	// Display tor proxy options help
+	// Display Tor proxy options help
 	TorProxy::displayOptionsHelp();
 	
 	// Display node options help

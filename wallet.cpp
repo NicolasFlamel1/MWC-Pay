@@ -1468,7 +1468,7 @@ bool Wallet::getBulletproof(uint8_t bulletproof[Crypto::BULLETPROOF_SIZE], const
 	return true;
 }
 
-// Get tor payment proof address
+// Get Tor payment proof address
 string Wallet::getTorPaymentProofAddress(const uint64_t index) const {
 
 	// Check if getting address private key at the index failed
@@ -1503,7 +1503,7 @@ string Wallet::getTorPaymentProofAddress(const uint64_t index) const {
 	// Securely clear address private key
 	explicit_bzero(addressPrivateKey, sizeof(addressPrivateKey));
 	
-	// Return address public key as a tor address
+	// Return address public key as a Tor address
 	return Tor::ed25519PublicKeyToAddress(addressPublicKey);
 }
 
@@ -1545,7 +1545,7 @@ bool Wallet::getTorPaymentProofAddressPublicKey(uint8_t publicKey[Crypto::ED2551
 	return true;
 }
 
-// Get tor payment proof signature
+// Get Tor payment proof signature
 bool Wallet::getTorPaymentProofSignature(uint8_t signature[Crypto::ED25519_SIGNATURE_SIZE], const uint64_t index, const uint8_t kernelCommitment[Crypto::COMMITMENT_SIZE], const char *senderAddress, const uint64_t value) const {
 
 	// Check if getting address private key at the index failed

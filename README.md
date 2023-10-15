@@ -17,7 +17,7 @@ make FLOONET=1
 ```
 
 ### Usage
-When MWC Pay starts, it'll prompt you for a password that will be used to create or open a wallet. Then it will connect to the tor network and sync with the MimbleWimble Coin network. After that's completed, it'll start the private and public servers which can then be used for creating and receiving payments. An example of how to interface with the APIs that MWC Pay provides can be found [here](https://github.com/NicolasFlamel1/MWC-Pay/tree/master/example).
+When MWC Pay starts, it'll prompt you for a password that will be used to create or open a wallet. Then it will connect to the Tor network and sync with the MimbleWimble Coin network. After that's completed, it'll start the private and public servers which can then be used for creating and receiving payments. An example of how to interface with the APIs that MWC Pay provides can be found [here](https://github.com/NicolasFlamel1/MWC-Pay/tree/master/example).
 
 MWC Pay consists of the following components:
 * Wallet: The wallet that receives payments.
@@ -40,9 +40,9 @@ MWC Pay also accepts the following command line arguments:
 * `-u, --root_public_key`: Displays wallet's root public key
 * `-l, --show_completed_payments`: Displays all completed payments
 * `-i, --show_payment`: Displays the payment with a specified ID
-* `-s, --tor_socks_proxy_address`: Sets the external tor SOCKS proxy address to use instead of the built-in one (example: `localhost`)
-* `-x, --tor_socks_proxy_port`: Sets the port to use for the external tor SOCKS proxy address (default: `9050`)
-* `-b, --tor_bridge`: Sets the bridge to use for relaying into the tor network (example: `obfs4 1.2.3.4:12345`)
+* `-s, --tor_socks_proxy_address`: Sets the external Tor SOCKS proxy address to use instead of the built-in one (example: `localhost`)
+* `-x, --tor_socks_proxy_port`: Sets the port to use for the external Tor SOCKS proxy address (default: `9050`)
+* `-b, --tor_bridge`: Sets the bridge to use for relaying into the Tor network (example: `obfs4 1.2.3.4:12345`)
 * `-g, --tor_transport_plugin`: Sets the transport plugin to use to forward traffic to the bridge (example: `obfs4 exec /usr/bin/obfs4proxy`)
 * `-n, --node_dns_seed_address`: Sets the node DNS seed address to use instead of the default ones (example: `mainnet.seed1.mwc.mw`)
 * `-m, --node_dns_seed_port`: Sets the port to use for the node DNS seed address (default: `3414`)
