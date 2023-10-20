@@ -115,7 +115,7 @@ PublicServer::PublicServer(const unordered_map<char, const char *> &providedOpti
 PublicServer::~PublicServer() {
 
 	// Check if started
-	if(started) {
+	if(started.load()) {
 	
 		// Display message
 		osyncstream(cout) << "Closing public server" << endl;
@@ -149,7 +149,7 @@ PublicServer::~PublicServer() {
 	}
 	
 	// Check if started
-	if(started) {
+	if(started.load()) {
 	
 		// Display message
 		osyncstream(cout) << "Public server closed" << endl;
@@ -491,7 +491,7 @@ void PublicServer::run(const unordered_map<char, const char *> &providedOptions,
 		}
 		
 		// Set started
-		started = true;
+		started.store(true);
 		
 		// Check if running event loop failed
 		if(event_base_dispatch(eventBase.get()) == -1) {
@@ -531,7 +531,7 @@ void PublicServer::run(const unordered_map<char, const char *> &providedOptions,
 // Handle generic request
 void PublicServer::handleGenericRequest(evhttp_request *request) {
 
-	// Check if setting request's response's cache control header failed 
+	// Check if setting request's response's cache control header failed
 	if(!evhttp_request_get_output_headers(request) || evhttp_add_header(evhttp_request_get_output_headers(request), "Cache-Control", "no-store, no-transform")) {
 	
 		// Remove request's response's cache control header
@@ -725,7 +725,7 @@ void PublicServer::handleGenericRequest(evhttp_request *request) {
 				return;
 			}
 			
-			// Check if setting request's response's content type header failed 
+			// Check if setting request's response's content type header failed
 			if(evhttp_add_header(evhttp_request_get_output_headers(request), "Content-Type", "application/json; charset=utf-8")) {
 			
 				// Remove request's response's content type header
@@ -1425,7 +1425,7 @@ void PublicServer::handleGenericRequest(evhttp_request *request) {
 																							return;
 																						}
 																						
-																						// Check if setting request's response's content encoding and vary headers failed 
+																						// Check if setting request's response's content encoding and vary headers failed
 																						if(evhttp_add_header(evhttp_request_get_output_headers(request), "Content-Encoding", "gzip") || evhttp_add_header(evhttp_request_get_output_headers(request), "Vary", "Accept-Encoding")) {
 																						
 																							// Remove request's response's content encoding and vary headers

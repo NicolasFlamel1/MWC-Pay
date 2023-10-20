@@ -1009,7 +1009,7 @@ bool Node::transactionHashSetOccurred(const MwcValidationNode::MerkleMountainRan
 									// Throw exception
 									throw runtime_error("Setting that payment is unconfirmed failed");
 								}
-							} 
+							}
 						}
 						
 						// Otherwise check if payment was confirmed

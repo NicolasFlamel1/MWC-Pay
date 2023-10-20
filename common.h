@@ -25,6 +25,18 @@ class Common final {
 		// Bytes in a kilobyte
 		static const int BYTES_IN_A_KILOBYTE;
 		
+		// Seconds in a minute
+		static const int SECONDS_IN_A_MINUTE;
+		
+		// Minutes in an hours
+		static const int MINUTES_IN_AN_HOUR;
+		
+		// Hours in a day
+		static const int HOURS_IN_A_DAY;
+		
+		// Days in a week
+		static const int DAYS_IN_A_WEEK;
+		
 		// Decimal number base
 		static const int DECIMAL_NUMBER_BASE;
 		

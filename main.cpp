@@ -15,6 +15,7 @@
 #include "event2/event.h"
 #include "./node.h"
 #include "./payments.h"
+#include "./price.h"
 #include "./private_server.h"
 #include "./public_server.h"
 #include "sqlite3.h"
@@ -128,6 +129,10 @@ int main(int argc, char *argv[]) {
 		// Add Tor proxy options to list
 		const vector torProxyOptions = TorProxy::getOptions();
 		options.insert(options.begin(), torProxyOptions.begin(), torProxyOptions.end());
+		
+		// Add price options to list
+		const vector priceOptions = Price::getOptions();
+		options.insert(options.begin(), priceOptions.begin(), priceOptions.end());
 		
 		// Add node options to list
 		const vector nodeOptions = Node::getOptions();
@@ -261,6 +266,16 @@ int main(int argc, char *argv[]) {
 					
 					// Check if validating Tor proxy option failed
 					if(!TorProxy::validateOption(option, optarg, argv)) {
+					
+						// Display options help
+						displayOptionsHelp(argv);
+					
+						// Return failure
+						return EXIT_FAILURE;
+					}
+					
+					// Check if validating price option failed
+					if(!Price::validateOption(option, optarg, argv)) {
 					
 						// Display options help
 						displayOptionsHelp(argv);
@@ -531,11 +546,14 @@ int main(int argc, char *argv[]) {
 		// Create Tor proxy
 		static const TorProxy torProxy(providedOptions);
 		
+		// Create price
+		static const Price price(providedOptions, torProxy);
+		
 		// Create node
 		static const Node node(providedOptions, torProxy, payments);
 		
 		// Create private server
-		static const PrivateServer privateServer(providedOptions, currentDirectory, wallet, payments);
+		static const PrivateServer privateServer(providedOptions, currentDirectory, wallet, payments, price);
 		
 		// Create public server
 		static const PublicServer publicServer(providedOptions, currentDirectory, wallet, payments);
@@ -676,6 +694,9 @@ void displayOptionsHelp(char *argv[]) {
 	
 	// Display Tor proxy options help
 	TorProxy::displayOptionsHelp();
+	
+	// Display price options help
+	Price::displayOptionsHelp();
 	
 	// Display node options help
 	Node::displayOptionsHelp();

@@ -10,7 +10,6 @@
 #include "event2/event.h"
 #include "event2/http.h"
 #include "openssl/ssl.h"
-#include "openssl/x509v3.h"
 
 using namespace std;
 
@@ -19,6 +18,18 @@ using namespace std;
 
 // Bytes in a kilobyte
 const int Common::BYTES_IN_A_KILOBYTE = pow(2, 10);
+
+// Seconds in a minute
+const int Common::SECONDS_IN_A_MINUTE = 60;
+
+// Minutes in an hours
+const int Common::MINUTES_IN_AN_HOUR = 60;
+
+// Hours in a day
+const int Common::HOURS_IN_A_DAY = 24;
+
+// Days in a week
+const int Common::DAYS_IN_A_WEEK = 7;
 
 // Decimal number base
 const int Common::DECIMAL_NUMBER_BASE = 10;

@@ -1240,7 +1240,7 @@ list<tuple<uint64_t, uint64_t, vector<uint8_t>, optional<uint64_t>, vector<uint8
 		const uint8_t *recipientPartialSignature = reinterpret_cast<const uint8_t *>(sqlite3_column_blob(getIncompletePaymentsStatement, 5));
 		const uint8_t *publicNonceSum = reinterpret_cast<const uint8_t *>(sqlite3_column_blob(getIncompletePaymentsStatement, 6));
 		const uint8_t *kernelData = reinterpret_cast<const uint8_t *>(sqlite3_column_blob(getIncompletePaymentsStatement, 7));
-		result.emplace_back( 
+		result.emplace_back(
 		
 			// ID
 			*reinterpret_cast<const uint64_t *>(&idStorage),
@@ -1301,7 +1301,7 @@ list<tuple<uint64_t, uint64_t, uint64_t>> Payments::getConfirmingPayments() {
 		
 		// Add payment's info to result
 		const int64_t idStorage = sqlite3_column_int64(getConfirmingPaymentsStatement, 0);
-		result.emplace_back( 
+		result.emplace_back(
 		
 			// ID
 			*reinterpret_cast<const uint64_t *>(&idStorage),
@@ -1586,7 +1586,7 @@ list<tuple<uint64_t, string>> Payments::getUnsuccessfulCompletedCallbackPayments
 		
 		// Add payment's info to result
 		const int64_t idStorage = sqlite3_column_int64(getUnsuccessfulCompletedCallbackPaymentsStatement, 0);
-		result.emplace_back( 
+		result.emplace_back(
 		
 			// ID
 			*reinterpret_cast<const uint64_t *>(&idStorage),

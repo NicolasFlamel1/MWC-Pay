@@ -50,7 +50,7 @@ class PublicServer final {
 		void handleGenericRequest(evhttp_request *request);
 		
 		// Started
-		bool started;
+		atomic_bool started;
 		
 		// Wallet
 		const Wallet &wallet;

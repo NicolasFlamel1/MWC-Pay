@@ -44,6 +44,9 @@ MWC Pay also accepts the following command line arguments:
 * `-x, --tor_socks_proxy_port`: Sets the port to use for the external Tor SOCKS proxy address (default: `9050`)
 * `-b, --tor_bridge`: Sets the bridge to use for relaying into the Tor network (example: `obfs4 1.2.3.4:12345`)
 * `-g, --tor_transport_plugin`: Sets the transport plugin to use to forward traffic to the bridge (example: `obfs4 exec /usr/bin/obfs4proxy`)
+* `-f, --price_update_interval`: Sets the interval in seconds for updating the price (default: `3600`)
+* `-j, --price_average_length`: Sets the number of previous prices used when determining the average price (default: `168`)
+* `-q, --price_disable`: Disables the price API
 * `-n, --node_dns_seed_address`: Sets the node DNS seed address to use instead of the default ones (example: `mainnet.seed1.mwc.mw`)
 * `-m, --node_dns_seed_port`: Sets the port to use for the node DNS seed address (default: `3414`)
 * `-a, --private_address`: Sets the address for the private server to listen at (default: `localhost`)
@@ -99,6 +102,18 @@ MWC Pay's private server allows for payments to be created, and it provides the 
    * Request: `http://localhost:9010/get_payment_info?payment_id=123`
    * Response: `{"url": "abc", "price": "123.456", "required_confirmations": 5, "received": false, "confirmations": 0, "time_remaining": 600, "status": "Not Received", "payment_proof_address": "52cflcqg7mr2b2mbg6x62huvut3sufz3gthjblo7yn7snfohrv54nxqd"}`
    * Response: `{"url": "abc", "price": null, "required_confirmations": 1, "received": false, "confirmations": 0, "time_remaining": null, "status": "Not Received", "payment_proof_address": "52cflcqg7mr2b2mbg6x62huvut3sufz3gthjblo7yn7snfohrv54nxqd"}`
+
+3. `get_price()`: Returns the current price of MimbleWimble Coin in USDT.
+
+   A response to this request will have one of the following status codes:
+   * `HTTP 200 OK`: The price is included in the response.
+   * `HTTP 500 Internal Error`: An error occurred.
+
+   Any other response status codes should be considered the equivalent of an `HTTP 400 Bad Request` status code.
+
+   Example:
+   * Request: `http://localhost:9010/get_price`
+   * Response: `{"price":"0.909238"}`
 
 ### Public Server API
 MWC Pay's public server allows payments to be received, and it provides the following JSON-RPC methods accessible via the `/v2/foreign` endpoint.

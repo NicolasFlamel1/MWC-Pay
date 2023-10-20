@@ -1,11 +1,11 @@
 # Program parameters
 NAME = "MWC Pay"
-VERSION = "0.0.1"
+VERSION = "0.1.0"
 CC = "g++"
 STRIP = "strip"
-CFLAGS = -I "./" -I "./openssl/dist/include" -I "./libevent/dist/include" -I "./secp256k1-zkp/dist/include" -I "./sqlite/dist/include" -I "./simdjson/dist/include" -I "./zlib/dist/include" -I "./tor/src/feature/api" -I "./libzip/dist/include" -I "./croaring/dist/include" -static-libstdc++ -static-libgcc -O3 -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -std=c++23 -finput-charset=UTF-8 -fexec-charset=UTF-8 -funsigned-char -ffunction-sections -fdata-sections -DPROGRAM_NAME=$(NAME) -DPROGRAM_VERSION=$(VERSION) -DDISABLE_SIGNAL_HANDLER -DPRUNE_HEADERS -DPRUNE_KERNELS -DPRUNE_RANGEPROOFS -DTOR_ENABLE
-LIBS = -L "./openssl/dist/lib" -L "./libevent/dist/lib" -L "./secp256k1-zkp/dist/lib" -L "./sqlite/dist/lib" -L "./simdjson/dist/lib" -L "./zlib/dist/lib" -L "./tor" -L "./libzip/dist/lib" -L "./croaring/dist/lib" -Wl,-Bstatic -ltor -lssl -lcrypto -levent -levent_pthreads -levent_openssl -lsecp256k1 -lsqlite3 -lsimdjson -lz -lzip -lroaring -Wl,-Bdynamic -lpthread
-SRCS = "./base32.cpp" "./base58.cpp" "./base64.cpp" "./bit_reader.cpp" "./bit_writer.cpp" "./blake2.cpp" "./common.cpp" "./consensus.cpp" "./crypto.cpp" "./gzip.cpp" "./main.cpp" "./mnemonic.cpp" "./mqs.cpp" "./node.cpp" "./node/block.cpp" "./node/common.cpp" "./node/consensus.cpp" "./node/crypto.cpp" "./node/header.cpp" "./node/input.cpp" "./node/kernel.cpp" "./node/message.cpp" "./node/node.cpp" "./node/output.cpp" "./node/peer.cpp" "./node/proof_of_work.cpp" "./node/rangeproof.cpp" "./node/saturate_math.cpp" "./payments.cpp" "./private_server.cpp" "./public_server.cpp" "./slate.cpp" "./slatepack.cpp" "./slate_output.cpp" "./slate_participant.cpp" "./smaz.cpp" "./tor.cpp" "./tor_proxy.cpp" "./wallet.cpp"
+CFLAGS = -I "./" -I "./gmp/dist/include" -I "./mpfr/dist/include" -I "./openssl/dist/include" -I "./libevent/dist/include" -I "./secp256k1-zkp/dist/include" -I "./sqlite/dist/include" -I "./simdjson/dist/include" -I "./zlib/dist/include" -I "./tor/src/feature/api" -I "./libzip/dist/include" -I "./croaring/dist/include" -static-libstdc++ -static-libgcc -O3 -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -std=c++23 -finput-charset=UTF-8 -fexec-charset=UTF-8 -funsigned-char -ffunction-sections -fdata-sections -DPROGRAM_NAME=$(NAME) -DPROGRAM_VERSION=$(VERSION) -DDISABLE_SIGNAL_HANDLER -DPRUNE_HEADERS -DPRUNE_KERNELS -DPRUNE_RANGEPROOFS -DTOR_ENABLE
+LIBS = -L "./gmp/dist/lib" -L "./mpfr/dist/lib" -L "./openssl/dist/lib" -L "./libevent/dist/lib" -L "./secp256k1-zkp/dist/lib" -L "./sqlite/dist/lib" -L "./simdjson/dist/lib" -L "./zlib/dist/lib" -L "./tor" -L "./libzip/dist/lib" -L "./croaring/dist/lib" -Wl,-Bstatic -lmpfr -lgmp -ltor -lssl -lcrypto -levent -levent_pthreads -levent_openssl -lsecp256k1 -lsqlite3 -lsimdjson -lz -lzip -lroaring -Wl,-Bdynamic -lpthread
+SRCS = "./base32.cpp" "./base58.cpp" "./base64.cpp" "./bit_reader.cpp" "./bit_writer.cpp" "./blake2.cpp" "./common.cpp" "./consensus.cpp" "./crypto.cpp" "./gzip.cpp" "./main.cpp" "./mnemonic.cpp" "./mqs.cpp" "./node.cpp" "./node/block.cpp" "./node/common.cpp" "./node/consensus.cpp" "./node/crypto.cpp" "./node/header.cpp" "./node/input.cpp" "./node/kernel.cpp" "./node/message.cpp" "./node/node.cpp" "./node/output.cpp" "./node/peer.cpp" "./node/proof_of_work.cpp" "./node/rangeproof.cpp" "./node/saturate_math.cpp" "./payments.cpp" "./price.cpp" "./price_oracle.cpp" "./price_oracles/bitforex.cpp" "./price_oracles/coingecko.cpp" "./price_oracles/tradeogre.cpp" "./price_oracles/whitebit.cpp" "./private_server.cpp" "./public_server.cpp" "./slate.cpp" "./slatepack.cpp" "./slate_output.cpp" "./slate_participant.cpp" "./smaz.cpp" "./tor.cpp" "./tor_proxy.cpp" "./wallet.cpp"
 PROGRAM_NAME = $(subst $\",,$(NAME))
 
 # Check if using floonet
@@ -22,7 +22,7 @@ all:
 
 # Make clean
 clean:
-	rm -rf "./$(PROGRAM_NAME)" "./openssl-3.1.3.tar.gz" "./openssl-3.1.3" "./openssl" "./libevent-2.2.1-alpha-dev.tar.gz" "./libevent-2.2.1-alpha-dev" "./libevent" "./master.zip" "./secp256k1-zkp-master" "./secp256k1-zkp" "./sqlite-autoconf-3430100.tar.gz" "./sqlite-autoconf-3430100" "./sqlite" "./v3.3.0.zip" "./simdjson-3.3.0" "./simdjson" "./zlib-1.3.tar.gz" "./zlib-1.3" "./zlib" "./tor-tor-0.4.8.7.zip" "./tor-tor-0.4.8.7" "./tor" "./libzip-1.10.1.tar.gz" "./libzip-1.10.1" "./libzip" "./v2.0.3.zip" "./CRoaring-2.0.3" "./croaring" "./MWC-Validation-Node-master" "./node"
+	rm -rf "./$(PROGRAM_NAME)" "./gmp-6.3.0.tar.xz" "./gmp-6.3.0" "./gmp" "./mpfr-4.2.1.tar.gz" "./mpfr-4.2.1" "./mpfr" "./openssl-3.1.3.tar.gz" "./openssl-3.1.3" "./openssl" "./libevent-2.2.1-alpha-dev.tar.gz" "./libevent-2.2.1-alpha-dev" "./libevent" "./master.zip" "./secp256k1-zkp-master" "./secp256k1-zkp" "./sqlite-autoconf-3430100.tar.gz" "./sqlite-autoconf-3430100" "./sqlite" "./v3.3.0.zip" "./simdjson-3.3.0" "./simdjson" "./zlib-1.3.tar.gz" "./zlib-1.3" "./zlib" "./tor-tor-0.4.8.7.zip" "./tor-tor-0.4.8.7" "./tor" "./libzip-1.10.1.tar.gz" "./libzip-1.10.1" "./libzip" "./v2.0.3.zip" "./CRoaring-2.0.3" "./croaring" "./MWC-Validation-Node-master" "./node"
 
 # Make run
 run:
@@ -37,6 +37,20 @@ install:
 
 # Make dependencies
 dependencies:
+	
+	# GMP
+	wget "https://gmplib.org/download/gmp/gmp-6.3.0.tar.xz"
+	tar -xf "./gmp-6.3.0.tar.xz"
+	rm "./gmp-6.3.0.tar.xz"
+	mv "./gmp-6.3.0" "./gmp"
+	cd "./gmp" && "./configure" --prefix="$(CURDIR)/gmp/dist" --disable-shared && make && make install
+	
+	# MPFR
+	wget "https://www.mpfr.org/mpfr-current/mpfr-4.2.1.tar.gz"
+	tar -xf "./mpfr-4.2.1.tar.gz"
+	rm "./mpfr-4.2.1.tar.gz"
+	mv "./mpfr-4.2.1" "./mpfr"
+	cd "./mpfr" && "./configure" --prefix="$(CURDIR)/mpfr/dist" --disable-shared --with-gmp-include="$(CURDIR)/gmp/dist/include" --with-gmp-lib="$(CURDIR)/gmp/dist/lib" && make && make install
 	
 	# OpenSSL
 	wget "https://github.com/openssl/openssl/releases/download/openssl-3.1.3/openssl-3.1.3.tar.gz"

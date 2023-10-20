@@ -50,7 +50,7 @@ static const size_t MAXIMUM_BODY_SIZE = 0;
 // Supporting function implementation
 
 // Constructor
-PrivateServer::PrivateServer(const unordered_map<char, const char *> &providedOptions, const filesystem::path &currentDirectory, const Wallet &wallet, Payments &payments) :
+PrivateServer::PrivateServer(const unordered_map<char, const char *> &providedOptions, const filesystem::path &currentDirectory, const Wallet &wallet, Payments &payments, const Price &price) :
 
 	// Set started
 	started(false),
@@ -60,6 +60,9 @@ PrivateServer::PrivateServer(const unordered_map<char, const char *> &providedOp
 	
 	// Set payments
 	payments(payments),
+	
+	// Set price
+	price(price),
 	
 	// Set event base
 	eventBase(nullptr, event_base_free)
@@ -112,7 +115,7 @@ PrivateServer::PrivateServer(const unordered_map<char, const char *> &providedOp
 PrivateServer::~PrivateServer() {
 
 	// Check if started
-	if(started) {
+	if(started.load()) {
 	
 		// Display message
 		osyncstream(cout) << "Closing private server" << endl;
@@ -146,7 +149,7 @@ PrivateServer::~PrivateServer() {
 	}
 	
 	// Check if started
-	if(started) {
+	if(started.load()) {
 	
 		// Display message
 		osyncstream(cout) << "Private server closed" << endl;
@@ -475,10 +478,48 @@ void PrivateServer::run(const unordered_map<char, const char *> &providedOptions
 			throw runtime_error("Setting private server HTTP server get payment info request callback failed");
 		}
 		
+		// Get price disable from provided options
+		const bool priceDisable = providedOptions.contains('q');
+		
+		// Check if not disabling price
+		if(!priceDisable) {
+		
+			// Check if setting HTTP server get price request callback failed
+			if(evhttp_set_cb(httpServer.get(), "/get_price", ([](evhttp_request *request, void *argument) {
+			
+				// Get self from argument
+				PrivateServer *self = reinterpret_cast<PrivateServer *>(argument);
+				
+				// Try
+				try {
+				
+					// Handle get price request
+					self->handleGetPriceRequest(request);
+				}
+				
+				// Catch errors
+				catch(...) {
+				
+					// Remove request's response's content type header
+					if(evhttp_request_get_output_headers(request)) {
+					
+						evhttp_remove_header(evhttp_request_get_output_headers(request), "Content-Type");
+					}
+					
+					// Reply with internal server error response to request
+					evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
+				}
+			}), this)) {
+			
+				// Throw exception
+				throw runtime_error("Setting private server HTTP server get price request callback failed");
+			}
+		}
+		
 		// Set HTTP server generic request callback
 		evhttp_set_gencb(httpServer.get(), ([](evhttp_request *request, void *argument) {
 		
-			// Check if setting request's response's cache control header failed 
+			// Check if setting request's response's cache control header failed
 			if(!evhttp_request_get_output_headers(request) || evhttp_add_header(evhttp_request_get_output_headers(request), "Cache-Control", "no-store, no-transform")) {
 			
 				// Remove request's response's cache control header
@@ -545,7 +586,7 @@ void PrivateServer::run(const unordered_map<char, const char *> &providedOptions
 		}
 		
 		// Set started
-		started = true;
+		started.store(true);
 		
 		// Check if running event loop failed
 		if(event_base_dispatch(eventBase.get()) == -1) {
@@ -585,7 +626,7 @@ void PrivateServer::run(const unordered_map<char, const char *> &providedOptions
 // Handle create payment request
 void PrivateServer::handleCreatePaymentRequest(evhttp_request *request) {
 
-	// Check if setting request's response's cache control header failed 
+	// Check if setting request's response's cache control header failed
 	if(!evhttp_request_get_output_headers(request) || evhttp_add_header(evhttp_request_get_output_headers(request), "Cache-Control", "no-store, no-transform")) {
 	
 		// Remove request's response's cache control header
@@ -820,7 +861,7 @@ void PrivateServer::handleCreatePaymentRequest(evhttp_request *request) {
 		return;
 	}
 	
-	// Check if setting request's response's content type header failed 
+	// Check if setting request's response's content type header failed
 	if(evhttp_add_header(evhttp_request_get_output_headers(request), "Content-Type", "application/json; charset=utf-8")) {
 	
 		// Remove request's response's content type header
@@ -856,7 +897,7 @@ void PrivateServer::handleCreatePaymentRequest(evhttp_request *request) {
 // Handle get payment info request
 void PrivateServer::handleGetPaymentInfoRequest(evhttp_request *request) {
 
-	// Check if setting request's response's cache control header failed 
+	// Check if setting request's response's cache control header failed
 	if(!evhttp_request_get_output_headers(request) || evhttp_add_header(evhttp_request_get_output_headers(request), "Cache-Control", "no-store, no-transform")) {
 	
 		// Remove request's response's cache control header
@@ -988,7 +1029,67 @@ void PrivateServer::handleGetPaymentInfoRequest(evhttp_request *request) {
 		}
 	}
 	
-	// Check if setting request's response's content type header failed 
+	// Check if setting request's response's content type header failed
+	if(evhttp_add_header(evhttp_request_get_output_headers(request), "Content-Type", "application/json; charset=utf-8")) {
+	
+		// Remove request's response's content type header
+		evhttp_remove_header(evhttp_request_get_output_headers(request), "Content-Type");
+		
+		// Reply with internal server error response to request
+		evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
+		
+		// Return
+		return;
+	}
+	
+	// Reply with ok response to request
+	evhttp_send_reply(request, HTTP_OK, nullptr, buffer.get());
+}
+
+// Handle get price request
+void PrivateServer::handleGetPriceRequest(evhttp_request *request) {
+
+	// Check if setting request's response's cache control header failed
+	if(!evhttp_request_get_output_headers(request) || evhttp_add_header(evhttp_request_get_output_headers(request), "Cache-Control", "no-store, no-transform")) {
+	
+		// Remove request's response's cache control header
+		if(evhttp_request_get_output_headers(request)) {
+		
+			evhttp_remove_header(evhttp_request_get_output_headers(request), "Cache-Control");
+		}
+		
+		// Reply with internal server error response to request
+		evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
+		
+		// Return
+		return;
+	}
+	
+	// Check if creating buffer failed
+	const unique_ptr<evbuffer, decltype(&evbuffer_free)> buffer(evbuffer_new(), evbuffer_free);
+	if(!buffer) {
+	
+		// Reply with internal server error response to request
+		evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
+		
+		// Return
+		return;
+	}
+	
+	// Get current price
+	const string currentPrice = price.getCurrentPrice();
+	
+	// Check if adding payment info to buffer failed
+	if(evbuffer_add_printf(buffer.get(), "{\"price\":\"%s\"}", currentPrice.c_str()) == -1) {
+	
+		// Reply with internal server error response to request
+		evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
+		
+		// Return
+		return;
+	}
+	
+	// Check if setting request's response's content type header failed
 	if(evhttp_add_header(evhttp_request_get_output_headers(request), "Content-Type", "application/json; charset=utf-8")) {
 	
 		// Remove request's response's content type header

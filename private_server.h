@@ -12,6 +12,7 @@
 #include "event2/event.h"
 #include "event2/http.h"
 #include "./payments.h"
+#include "./price.h"
 #include "./wallet.h"
 
 using namespace std;
@@ -26,7 +27,7 @@ class PrivateServer final {
 	public:
 	
 		// Constructor
-		explicit PrivateServer(const unordered_map<char, const char *> &providedOptions, const filesystem::path &currentDirectory, const Wallet &wallet, Payments &payments);
+		explicit PrivateServer(const unordered_map<char, const char *> &providedOptions, const filesystem::path &currentDirectory, const Wallet &wallet, Payments &payments, const Price &price);
 		
 		// Destructor
 		~PrivateServer();
@@ -52,14 +53,20 @@ class PrivateServer final {
 		// Handle get payment info request
 		void handleGetPaymentInfoRequest(evhttp_request *request);
 		
+		// Handle get price request
+		void handleGetPriceRequest(evhttp_request *request);
+		
 		// Started
-		bool started;
+		atomic_bool started;
 		
 		// Wallet
 		const Wallet &wallet;
 		
 		// Payments
 		Payments &payments;
+		
+		// Price
+		const Price &price;
 		
 		// Event base
 		unique_ptr<event_base, decltype(&event_base_free)> eventBase;
