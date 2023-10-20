@@ -172,6 +172,46 @@
 		
 		// Set URL from the payment info's URL
 		$url = ((array_key_exists("HTTPS", $_SERVER) === TRUE && $_SERVER["HTTPS"] === "on") ? "https" : "http") . "://" . rawurlencode($_SERVER["SERVER_NAME"]) . ":9011/" . rawurlencode($paymentInfo["url"]);
+		
+		// Check if payment info's price exists
+		if($paymentInfo["price"] !== NULL) {
+		
+			// Check if getting price failed
+			$getPriceResponse = file_get_contents("http://localhost:9010/get_price");
+			
+			if($getPriceResponse === FALSE) {
+			
+				// Return internal server error response and exit
+				http_response_code(500);
+				exit;
+			}
+			
+			// Try
+			try {
+			
+				// Get price from response
+				$price = json_decode($getPriceResponse, TRUE, 2, JSON_THROW_ON_ERROR);
+			}
+			
+			// Catch errors
+			catch(Exception $error) {
+			
+				// Return internal server error response and exit
+				http_response_code(500);
+				exit;
+			}
+			
+			// Check if price is invalid
+			if(is_array($price) === FALSE || array_key_exists("price", $price) === FALSE || is_string($price["price"]) === FALSE || preg_match('/^(?:0(?:\.\d+)?|[1-9]\d*(?:\.\d+)?)$/u', $price["price"]) !== 1) {
+			
+				// Return internal server error response and exit
+				http_response_code(500);
+				exit;
+			}
+			
+			// Get price in USDT
+			$priceInUsdt = floatval($paymentInfo["price"]) * floatval($price["price"]);
+		}
 	}
 	
 	// Otherwise
@@ -213,7 +253,7 @@
 </head>
 <body>
 	<h2>Payment Information</h2>
-	<p>Send <?= ($paymentInfo["price"] !== NULL) ? preg_replace('/`/u', "&#x60;", htmlspecialchars($paymentInfo["price"], ENT_QUOTES)) : "some"; ?> MWC to <a target="_blank" href="web+mwc<?= preg_replace('/`/u', "&#x60;", htmlspecialchars($url, ENT_QUOTES)); ?>"><?= preg_replace('/`/u', "&#x60;", htmlspecialchars($url, ENT_QUOTES)); ?></a> to purchase the item(s)</p>
+	<p>Send <?= ($paymentInfo["price"] !== NULL) ? preg_replace('/`/u', "&#x60;", htmlspecialchars($paymentInfo["price"], ENT_QUOTES)) : "some"; ?> MWC<?= ($paymentInfo["price"] !== NULL) ? " (≈$" . sprintf("%.2f", $priceInUsdt) . ")" : ""; ?> to <a target="_blank" href="web+mwc<?= preg_replace('/`/u', "&#x60;", htmlspecialchars($url, ENT_QUOTES)); ?>"><?= preg_replace('/`/u', "&#x60;", htmlspecialchars($url, ENT_QUOTES)); ?></a> to purchase the item(s)</p>
 	<p>Recipient payment proof address: <?= preg_replace('/`/u', "&#x60;", htmlspecialchars($paymentInfo["payment_proof_address"], ENT_QUOTES)); ?></p>
 	<hr>
 	<iframe frameborder="0" src="./payment_status.html?<?= http_build_query([
