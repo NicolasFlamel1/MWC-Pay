@@ -7,12 +7,6 @@
 using namespace std;
 
 
-// Constants
-
-// Precision
-static const mpfr_prec_t PRECISION = 256;
-
-
 // Supporting function implementation
 
 // Constructor
@@ -93,7 +87,7 @@ pair<chrono::time_point<chrono::system_clock>, string> WhiteBit::getNewPrice() c
 	
 	// Initialize MWC price
 	mpfr_t mwcPrice;
-	mpfr_init2(mwcPrice, PRECISION);
+	mpfr_init2(mwcPrice, Common::MPFR_PRECISION);
 	
 	// Automatically free MWC price
 	const unique_ptr<remove_pointer<mpfr_ptr>::type, decltype(&mpfr_clear)> mwcPriceUniquePointer(mwcPrice, mpfr_clear);
@@ -120,7 +114,7 @@ pair<chrono::time_point<chrono::system_clock>, string> WhiteBit::getNewPrice() c
 	}
 	
 	// Initialize precision
-	unsigned int precision = 0;
+	size_t precision = 0;
 	
 	// Check if price has a decimal
 	const char *decimal = strchr(price, '.');
@@ -151,7 +145,7 @@ pair<chrono::time_point<chrono::system_clock>, string> WhiteBit::getNewPrice() c
 	
 	// Initialize BTC price
 	mpfr_t btcPrice;
-	mpfr_init2(btcPrice, PRECISION);
+	mpfr_init2(btcPrice, Common::MPFR_PRECISION);
 	
 	// Automatically free BTC price
 	const unique_ptr<remove_pointer<mpfr_ptr>::type, decltype(&mpfr_clear)> btcPriceUniquePointer(btcPrice, mpfr_clear);

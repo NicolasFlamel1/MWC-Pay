@@ -8,12 +8,6 @@
 using namespace std;
 
 
-// Constants
-
-// Precision
-static const mpfr_prec_t PRECISION = 256;
-
-
 // Supporting function implementation
 
 // Constructor
@@ -89,7 +83,7 @@ pair<chrono::time_point<chrono::system_clock>, string> CoinGecko::getNewPrice() 
 	
 	// Initialize MWC price
 	mpfr_t mwcPrice;
-	mpfr_init2(mwcPrice, PRECISION);
+	mpfr_init2(mwcPrice, Common::MPFR_PRECISION);
 	
 	// Automatically free MWC price
 	const unique_ptr<remove_pointer<mpfr_ptr>::type, decltype(&mpfr_clear)> mwcPriceUniquePointer(mwcPrice, mpfr_clear);
@@ -103,7 +97,7 @@ pair<chrono::time_point<chrono::system_clock>, string> CoinGecko::getNewPrice() 
 	}
 	
 	// Initialize precision
-	unsigned int precision = 0;
+	size_t precision = 0;
 	
 	// Get price string
 	string_view priceString = json["mimblewimblecoin"]["usd"].raw_json_token();
@@ -143,7 +137,7 @@ pair<chrono::time_point<chrono::system_clock>, string> CoinGecko::getNewPrice() 
 	
 	// Initialize USDT price
 	mpfr_t usdtPrice;
-	mpfr_init2(usdtPrice, PRECISION);
+	mpfr_init2(usdtPrice, Common::MPFR_PRECISION);
 	
 	// Automatically free USDT price
 	const unique_ptr<remove_pointer<mpfr_ptr>::type, decltype(&mpfr_clear)> usdtPriceUniquePointer(usdtPrice, mpfr_clear);

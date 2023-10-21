@@ -16,9 +16,6 @@ using namespace std;
 
 // Constants
 
-// Precision
-static const mpfr_prec_t PRECISION = 256;
-
 // Default update interval
 static const time_t DEFAULT_UPDATE_INTERVAL = 1 * Common::MINUTES_IN_AN_HOUR * Common::SECONDS_IN_A_MINUTE;
 
@@ -43,6 +40,20 @@ Price::Price(const unordered_map<char, const char *> &providedOptions, const Tor
 
 	// Display message
 	osyncstream(cout) << "Starting price" << endl;
+	
+	// Check if update interval is provided and disabling price
+	if(providedOptions.contains('f') && providedOptions.contains('q')) {
+	
+		// Throw exception
+		throw runtime_error("Price update interval can't be used when price is disabled");
+	}
+	
+	// Check if average length is provided and disabling price
+	if(providedOptions.contains('j') && providedOptions.contains('q')) {
+	
+		// Throw exception
+		throw runtime_error("Price average length can't be used when price is disabled");
+	}
 	
 	// Check if enabling threads support failed
 	if(evthread_use_pthreads()) {
@@ -95,6 +106,12 @@ Price::Price(const unordered_map<char, const char *> &providedOptions, const Tor
 		exit(EXIT_FAILURE);
 	}
 	
+	// Get update internal from provided options
+	updateInterval = providedOptions.contains('f') ? strtoull(providedOptions.at('f'), nullptr, Common::DECIMAL_NUMBER_BASE) : DEFAULT_UPDATE_INTERVAL;
+	
+	// Get average length from provided options
+	averageLength = providedOptions.contains('j') ? strtoul(providedOptions.at('j'), nullptr, Common::DECIMAL_NUMBER_BASE) : DEFAULT_AVERAGE_LENGTH;
+	
 	// Get disable from provided options
 	const bool disable = providedOptions.contains('q');
 	
@@ -108,6 +125,20 @@ Price::Price(const unordered_map<char, const char *> &providedOptions, const Tor
 	// Otherwise
 	else {
 	
+		// Check if a price update interval is provided
+		if(providedOptions.contains('f')) {
+		
+			// Display message
+			osyncstream(cout) << "Using provided price update interval: " << updateInterval << endl;
+		}
+		
+		// Check if a price average length is provided
+		if(providedOptions.contains('j')) {
+		
+			// Display message
+			osyncstream(cout) << "Using provided price average length: " << averageLength << endl;
+		}
+		
 		// Display message
 		osyncstream(cout) << "Getting price" << flush;
 		
@@ -191,6 +222,9 @@ Price::~Price() {
 		// Exit failure
 		exit(EXIT_FAILURE);
 	}
+	
+	// Send signal to main thread to fail syscalls
+	pthread_kill(mainThread.native_handle(), SIGUSR1);
 	
 	// Try
 	try {
@@ -317,16 +351,6 @@ void Price::run(const unordered_map<char, const char *> &providedOptions) {
 
 	// Try
 	try {
-	
-		// Get average length from provided options
-		averageLength = providedOptions.contains('j') ? strtoul(providedOptions.at('j'), nullptr, Common::DECIMAL_NUMBER_BASE) : DEFAULT_AVERAGE_LENGTH;
-		
-		// Check if a price average length is provided
-		if(providedOptions.contains('j')) {
-		
-			// Display message
-			osyncstream(cout) << "Using provided price average length: " << averageLength << endl;
-		}
 		
 		// Check if creating timer event failed
 		const unique_ptr<event, decltype(&event_free)> timerEvent(event_new(eventBase.get(), -1, EV_PERSIST, [](const evutil_socket_t fileDescriptor, const short signal, void *argument) {
@@ -343,16 +367,6 @@ void Price::run(const unordered_map<char, const char *> &providedOptions) {
 		
 			// Throw exception
 			throw runtime_error("Creating price timer event failed");
-		}
-		
-		// Get update internal from provided options
-		updateInterval = providedOptions.contains('f') ? strtoull(providedOptions.at('f'), nullptr, Common::DECIMAL_NUMBER_BASE) : DEFAULT_UPDATE_INTERVAL;
-		
-		// Check if a price update interval is provided
-		if(providedOptions.contains('f')) {
-		
-			// Display message
-			osyncstream(cout) << "Using provided price update interval: " << updateInterval << endl;
 		}
 		
 		// Set timer
@@ -456,18 +470,22 @@ bool Price::updateCurrentPrice() {
 		return firstNewPrice.first > secondNewPrice.first;
 	});
 	
-	// Check if no new price was obtained or new price is invalid
-	if(chrono::duration_cast<chrono::seconds>(newPrices[0].first.time_since_epoch()) == chrono::seconds(0) || chrono::duration_cast<chrono::seconds>(newPrices[0].first.time_since_epoch()) < chrono::seconds(updateInterval)) {
+	// Check if no new price was obtained
+	if(chrono::duration_cast<chrono::seconds>(newPrices[0].first.time_since_epoch()) == chrono::seconds(0)) {
 	
 		// Return false
 		return false;
 	}
 	
 	// Get timestamp threshold base on the newest price
-	const chrono::time_point<chrono::system_clock> timestampThreshold = newPrices[0].first - chrono::seconds(updateInterval);
+	const chrono::time_point<chrono::system_clock> timestampThreshold = (chrono::seconds(updateInterval) <= chrono::duration_cast<chrono::seconds>(newPrices[0].first.time_since_epoch())) ? newPrices[0].first - chrono::seconds(updateInterval) : chrono::time_point<chrono::system_clock>(chrono::seconds(0));
 	
 	// Initialize total timestamp
-	chrono::seconds totalTimestamp(0);
+	mpz_t totalTimestamp;
+	mpz_init(totalTimestamp);
+	
+	// Automatically free total timestamp
+	const unique_ptr<remove_pointer<mpz_ptr>::type, decltype(&mpz_clear)> totalTimestampUniquePointer(totalTimestamp, mpz_clear);
 	
 	// Go through all new prices
 	for(size_t i = 0; i < priceOracles.size(); ++i) {
@@ -480,12 +498,19 @@ bool Price::updateCurrentPrice() {
 		}
 		
 		// Update total timestamp
-		totalTimestamp += chrono::duration_cast<chrono::seconds>(newPrices[i].first - timestampThreshold);
+		mpz_add_ui(totalTimestamp, totalTimestamp, chrono::duration_cast<chrono::seconds>(newPrices[i].first - timestampThreshold).count());
+		
+		// Check if result is invalid
+		if(mpz_sgn(totalTimestamp) <= 0) {
+		
+			// Return false
+			return false;
+		}
 	}
 	
 	// Initialize new price number
 	mpfr_t newPriceNumber;
-	mpfr_init2(newPriceNumber, PRECISION);
+	mpfr_init2(newPriceNumber, Common::MPFR_PRECISION);
 	mpfr_set_zero(newPriceNumber, true);
 	
 	// Automatically free new price number
@@ -496,7 +521,7 @@ bool Price::updateCurrentPrice() {
 	
 	// Go through all new prices
 	mpfr_t weightedPrice;
-	mpfr_init2(weightedPrice, PRECISION);
+	mpfr_init2(weightedPrice, Common::MPFR_PRECISION);
 	const unique_ptr<remove_pointer<mpfr_ptr>::type, decltype(&mpfr_clear)> weightedPriceUniquePointer(weightedPrice, mpfr_clear);
 	for(size_t i = 0; i < priceOracles.size(); ++i) {
 	
@@ -525,7 +550,7 @@ bool Price::updateCurrentPrice() {
 		}
 		
 		// Divide weighted price by the total timestamp
-		mpfr_div_ui(weightedPrice, weightedPrice, totalTimestamp.count(), MPFR_RNDA);
+		mpfr_div_z(weightedPrice, weightedPrice, totalTimestamp, MPFR_RNDA);
 		
 		// Check if result is invalid
 		if(mpfr_sgn(weightedPrice) < 0) {
@@ -617,7 +642,7 @@ bool Price::updateCurrentPrice() {
 	
 	// Initialize average price
 	mpfr_t averagePrice;
-	mpfr_init2(averagePrice, PRECISION);
+	mpfr_init2(averagePrice, Common::MPFR_PRECISION);
 	mpfr_set_zero(averagePrice, true);
 	
 	// Automatically free average price
@@ -628,7 +653,7 @@ bool Price::updateCurrentPrice() {
 	
 	// Go through all prices
 	mpfr_t priceNumber;
-	mpfr_init2(priceNumber, PRECISION);
+	mpfr_init2(priceNumber, Common::MPFR_PRECISION);
 	const unique_ptr<remove_pointer<mpfr_ptr>::type, decltype(&mpfr_clear)> priceNumberUniquePointer(priceNumber, mpfr_clear);
 	for(const string &price : prices) {
 	

@@ -21,9 +21,10 @@ When MWC Pay starts, it'll prompt you for a password that will be used to create
 
 MWC Pay consists of the following components:
 * Wallet: The wallet that receives payments.
-* Tor proxy: The proxy that's used to route all node traffic.
+* Tor proxy: The proxy that's used to route all node traffic and price requests.
+* Price: Used to determine the current price of MimbleWimble Coin.
 * Validation node: Used to determines when payments are confirmed.
-* Private server: Provides the APIs to create payments and check the status of payments.
+* Private server: Provides the APIs to create payments, check the status of payments, and get the current price of MimbleWimble Coin.
 * Public server: Provides the APIs to received payments.
 
 A high level overview of a payment's life cycle when using MWC Pay consists of the following steps:
