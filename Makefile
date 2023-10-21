@@ -43,7 +43,7 @@ dependencies:
 	tar -xf "./gmp-6.3.0.tar.xz"
 	rm "./gmp-6.3.0.tar.xz"
 	mv "./gmp-6.3.0" "./gmp"
-	cd "./gmp" && "./configure" --prefix="$(CURDIR)/gmp/dist" --disable-shared && make && make install
+	cd "./gmp" && "./configure" --prefix="$(CURDIR)/gmp/dist" --disable-shared --build=x86_64-pc-linux-gnu && make && make install
 	
 	# MPFR
 	wget "https://www.mpfr.org/mpfr-current/mpfr-4.2.1.tar.gz"
