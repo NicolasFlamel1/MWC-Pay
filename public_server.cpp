@@ -687,8 +687,8 @@ void PublicServer::handleGenericRequest(evhttp_request *request) {
 		}
 		
 		// Check if getting POST data failed
-		uint8_t postData[evbuffer_get_length(postDataBuffer) + simdjson::SIMDJSON_PADDING];
-		if(evbuffer_copyout(postDataBuffer, postData, sizeof(postData) - simdjson::SIMDJSON_PADDING) != static_cast<ssize_t>(sizeof(postData) - simdjson::SIMDJSON_PADDING)) {
+		const unsigned char *postData = evbuffer_pullup(postDataBuffer, evbuffer_get_length(postDataBuffer));
+		if(!postData) {
 		
 			// Reply with internal server error response to request
 			evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
@@ -702,7 +702,7 @@ void PublicServer::handleGenericRequest(evhttp_request *request) {
 		
 			// Parse POST data as JSON
 			simdjson::dom::parser parser;
-			const simdjson::dom::element json = parser.parse(postData, sizeof(postData) - simdjson::SIMDJSON_PADDING, false);
+			const simdjson::dom::element json = parser.parse(postData, evbuffer_get_length(postDataBuffer), true);
 			
 			// Check if JSON isn't a JSON-RPC request
 			if(!json.is_object() || strcmp(json["jsonrpc"].get_c_str(), "2.0") || !json["id"].is_uint64() || !json["method"].is_string() || json["params"].error() != simdjson::SUCCESS) {
@@ -1355,8 +1355,8 @@ void PublicServer::handleGenericRequest(evhttp_request *request) {
 																				if(compress) {
 																				
 																					// Check if getting buffer's uncompressed data failed
-																					uint8_t uncompressedData[evbuffer_get_length(buffer.get())];
-																					if(evbuffer_copyout(buffer.get(), uncompressedData, sizeof(uncompressedData)) != static_cast<ssize_t>(sizeof(uncompressedData))) {
+																					const unsigned char *uncompressedData = evbuffer_pullup(buffer.get(), evbuffer_get_length(buffer.get()));
+																					if(!uncompressedData) {
 																					
 																						// Remove request's response's content type header
 																						evhttp_remove_header(evhttp_request_get_output_headers(request), "Content-Type");
@@ -1373,7 +1373,7 @@ void PublicServer::handleGenericRequest(evhttp_request *request) {
 																					try {
 																				
 																						// Compress uncompressed data
-																						compressedData = Gzip::compress(uncompressedData, sizeof(uncompressedData));
+																						compressedData = Gzip::compress(uncompressedData, evbuffer_get_length(buffer.get()));
 																					}
 																					
 																					// Catch errors

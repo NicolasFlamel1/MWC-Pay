@@ -258,9 +258,23 @@ unique_ptr<evhttp_connection, decltype(&evhttp_connection_free)> PriceOracle::cr
 					}
 				}
 				
-				// Check if removing data from input failed
-				uint8_t data[length];
-				if(evbuffer_copyout(input, data, length) != static_cast<ssize_t>(length) || evbuffer_drain(input, length)) {
+				// Check if getting data from input failed
+				const unsigned char *data = evbuffer_pullup(input, length);
+				if(!data) {
+				
+					// Disable reading from buffer
+					bufferevent_disable(buffer, EV_READ);
+				}
+				
+				// Otherwise check if data indicates failure
+				else if(data[1]) {
+				
+					// Disable reading from buffer
+					bufferevent_disable(buffer, EV_READ);
+				}
+				
+				// Otherwise check if removing data from input failed
+				else if(evbuffer_drain(input, length)) {
 				
 					// Disable reading from buffer
 					bufferevent_disable(buffer, EV_READ);
@@ -272,56 +286,34 @@ unique_ptr<evhttp_connection, decltype(&evhttp_connection_free)> PriceOracle::cr
 					// Check if not authenticated
 					if(!*authenticated) {
 					
-						// Check if authenticating failed
-						if(data[1]) {
+						// Set authenticated
+						*authenticated = true;
+						
+						// Create connection request
+						const uint8_t hostLength = strlen(host);
+						const uint16_t networkPort = htons(*port);
+						uint8_t connectionRequest[sizeof("\x05\x01\x00\x03") - sizeof('\0') + sizeof(hostLength) + hostLength + sizeof(networkPort)];
+						memcpy(connectionRequest, "\x05\x01\x00\x03", sizeof("\x05\x01\x00\x03") - sizeof('\0'));
+						connectionRequest[sizeof("\x05\x01\x00\x03") - sizeof('\0')] = hostLength;
+						memcpy(&connectionRequest[sizeof("\x05\x01\x00\x03") - sizeof('\0') + sizeof(hostLength)], host, hostLength);
+						memcpy(&connectionRequest[sizeof("\x05\x01\x00\x03") - sizeof('\0') + sizeof(hostLength) + hostLength], &networkPort, sizeof(networkPort));
+						
+						// Check if writing connection request to buffer failed
+						if(bufferevent_write(buffer, connectionRequest, sizeof(connectionRequest))) {
 						
 							// Disable reading from buffer
 							bufferevent_disable(buffer, EV_READ);
-						}
-						
-						// Otherwise
-						else {
-						
-							// Set authenticated
-							*authenticated = true;
-							
-							// Create connection request
-							const uint8_t hostLength = strlen(host);
-							const uint16_t networkPort = htons(*port);
-							uint8_t connectionRequest[sizeof("\x05\x01\x00\x03") - sizeof('\0') + sizeof(hostLength) + hostLength + sizeof(networkPort)];
-							memcpy(connectionRequest, "\x05\x01\x00\x03", sizeof("\x05\x01\x00\x03") - sizeof('\0'));
-							connectionRequest[sizeof("\x05\x01\x00\x03") - sizeof('\0')] = hostLength;
-							memcpy(&connectionRequest[sizeof("\x05\x01\x00\x03") - sizeof('\0') + sizeof(hostLength)], host, hostLength);
-							memcpy(&connectionRequest[sizeof("\x05\x01\x00\x03") - sizeof('\0') + sizeof(hostLength) + hostLength], &networkPort, sizeof(networkPort));
-							
-							// Check if writing connection request to buffer failed
-							if(bufferevent_write(buffer, connectionRequest, sizeof(connectionRequest))) {
-							
-								// Disable reading from buffer
-								bufferevent_disable(buffer, EV_READ);
-							}
 						}
 					}
 					
 					// Otherwise
 					else {
 					
-						// Check if connecting failed
-						if(data[1]) {
+						// Set connected
+						*connected = true;
 						
-							// Disable reading from buffer
-							bufferevent_disable(buffer, EV_READ);
-						}
-						
-						// Otherwise
-						else {
-						
-							// Set connected
-							*connected = true;
-							
-							// Disable reading from buffer
-							bufferevent_disable(buffer, EV_READ);
-						}
+						// Disable reading from buffer
+						bufferevent_disable(buffer, EV_READ);
 					}
 				}
 			}
