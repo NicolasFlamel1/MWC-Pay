@@ -1,4 +1,5 @@
 // Header files
+#include <cstring>
 #include <iomanip>
 #include <iostream>
 #include <memory>
@@ -25,6 +26,12 @@ const uint32_t Payments::NO_TIMEOUT = 0;
 
 // Maximum completed callback size
 const size_t Payments::MAXIMUM_COMPLETED_CALLBACK_SIZE = 1 * Common::BYTES_IN_A_KILOBYTE;
+
+// Maximum received callback size
+const size_t Payments::MAXIMUM_RECEIVED_CALLBACK_SIZE = Payments::MAXIMUM_COMPLETED_CALLBACK_SIZE;
+
+// No received callback
+const char *Payments::NO_RECEIVED_CALLBACK = nullptr;
 
 
 // Supporting function implementation
@@ -94,12 +101,45 @@ Payments::Payments(sqlite3 *databaseConnection) :
 		"\"Public Nonce Sum\" BLOB NULL DEFAULT(NULL) CHECK((\"Public Nonce Sum\" IS NULL AND \"Received\" IS NULL) OR (\"Public Nonce Sum\" IS NOT NULL AND LENGTH(\"Public Nonce Sum\") = " + to_string(Crypto::SECP256K1_PUBLIC_KEY_SIZE) + " AND \"Received\" IS NOT NULL)),"
 		
 		// Kernel data
-		"\"Kernel Data\" BLOB NULL DEFAULT(NULL) CHECK((\"Kernel Data\" IS NULL AND \"Received\" IS NULL) OR (\"Kernel Data\" IS NOT NULL AND LENGTH(\"Kernel Data\") != 0 AND \"Received\" IS NOT NULL))"
+		"\"Kernel Data\" BLOB NULL DEFAULT(NULL) CHECK((\"Kernel Data\" IS NULL AND \"Received\" IS NULL) OR (\"Kernel Data\" IS NOT NULL AND LENGTH(\"Kernel Data\") != 0 AND \"Received\" IS NOT NULL)),"
+		
+		// Received callback (Request to perform when payment is received)
+		"\"Received Callback\" TEXT NULL DEFAULT(NULL) CHECK(\"Received Callback\" IS NULL OR \"Received Callback\" LIKE 'http://%' OR \"Received Callback\" LIKE 'https://%')"
 		
 	") STRICT;").c_str(), nullptr, nullptr, nullptr) != SQLITE_OK) {
 	
 		// Throw exception
 		throw runtime_error("Creating payments table in the database failed");
+	}
+	
+	// Check if getting if received callback column exists in the payments table in the database failed
+	bool receivedCallbackColumnExists;
+	if(sqlite3_exec(databaseConnection, "SELECT COUNT() > 0 FROM pragma_table_info(\"Payments\") WHERE \"name\"='Received Callback';", [](void *argument, int numberOfRows, char **rows, char **columnNames) -> int {
+	
+		// Get receievd callback exists  from argument
+		bool *receivedCallbackColumnExists = reinterpret_cast<bool *>(argument);
+		
+		// Set received callback column exists
+		*receivedCallbackColumnExists = numberOfRows && !strcmp(rows[0], "1");
+		
+		// Return success
+		return 0;
+		
+	}, &receivedCallbackColumnExists, nullptr) != SQLITE_OK) {
+	
+		// Throw exception
+		throw runtime_error("Getting if received callback column exists in the payments table in the database failed");
+	}
+	
+	// Check if received callback column doesn't exist
+	if(!receivedCallbackColumnExists) {
+	
+		// Check if adding received callback column to payments table in the database failed
+		if(sqlite3_exec(databaseConnection, "ALTER TABLE \"Payments\" ADD COLUMN \"Received Callback\" TEXT NULL DEFAULT(NULL) CHECK(\"Received Callback\" IS NULL OR \"Received Callback\" LIKE 'http://%' OR \"Received Callback\" LIKE 'https://%');", nullptr, nullptr, nullptr) != SQLITE_OK) {
+		
+			// Throw exception
+			throw runtime_error("Adding received callback column to payments table in the database failed");
+		}
 	}
 	
 	// Check if creating triggers in the database failed
@@ -174,6 +214,11 @@ Payments::Payments(sqlite3 *databaseConnection) :
 		"CREATE TRIGGER IF NOT EXISTS \"Payments Keep Kernel Data Trigger\" BEFORE UPDATE OF \"Kernel Data\" ON \"Payments\" FOR EACH ROW WHEN OLD.\"Kernel Data\" IS NOT NULL BEGIN "
 			"SELECT RAISE(ABORT, 'kernel data can''t change');"
 		"END;"
+		
+		// Keep received callback
+		"CREATE TRIGGER IF NOT EXISTS \"Payments Keep Received Callback\" BEFORE UPDATE OF \"Received Callback\" ON \"Payments\" BEGIN "
+			"SELECT RAISE(ABORT, 'received callback can''t change');"
+		"END;"
 	
 	"", nullptr, nullptr, nullptr) != SQLITE_OK) {
 	
@@ -203,7 +248,7 @@ Payments::Payments(sqlite3 *databaseConnection) :
 	}
 	
 	// Check if preparing create payment statement failed
-	if(sqlite3_prepare_v3(databaseConnection, "INSERT INTO \"Payments\" (\"ID\", \"URL\", \"Price\", \"Required Confirmations\", \"Completed Callback\") VALUES (?, ?, ?, ?, ?);", -1, SQLITE_PREPARE_PERSISTENT, &createPaymentStatement, nullptr) != SQLITE_OK) {
+	if(sqlite3_prepare_v3(databaseConnection, "INSERT INTO \"Payments\" (\"ID\", \"URL\", \"Price\", \"Required Confirmations\", \"Completed Callback\", \"Received Callback\") VALUES (?, ?, ?, ?, ?, ?);", -1, SQLITE_PREPARE_PERSISTENT, &createPaymentStatement, nullptr) != SQLITE_OK) {
 	
 		// Throw exception
 		throw runtime_error("Preparing create payment statement failed");
@@ -213,7 +258,7 @@ Payments::Payments(sqlite3 *databaseConnection) :
 	unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> createPaymentStatementUniquePointer(createPaymentStatement, sqlite3_finalize);
 	
 	// Check if preparing create payment with expiration statement failed
-	if(sqlite3_prepare_v3(databaseConnection, "INSERT INTO \"Payments\" (\"ID\", \"URL\", \"Price\", \"Required Confirmations\", \"Expires\", \"Completed Callback\") VALUES (?, ?, ?, ?, UNIXEPOCH('now') + ?, ?);", -1, SQLITE_PREPARE_PERSISTENT, &createPaymentWithExpirationStatement, nullptr) != SQLITE_OK) {
+	if(sqlite3_prepare_v3(databaseConnection, "INSERT INTO \"Payments\" (\"ID\", \"URL\", \"Price\", \"Required Confirmations\", \"Expires\", \"Completed Callback\", \"Received Callback\") VALUES (?, ?, ?, ?, UNIXEPOCH('now') + ?, ?, ?);", -1, SQLITE_PREPARE_PERSISTENT, &createPaymentWithExpirationStatement, nullptr) != SQLITE_OK) {
 	
 		// Throw exception
 		throw runtime_error("Preparing create payment with expiration statement failed");
@@ -233,7 +278,7 @@ Payments::Payments(sqlite3 *databaseConnection) :
 	unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> getPaymentInfoStatementUniquePointer(getPaymentInfoStatement, sqlite3_finalize);
 	
 	// Check if preparing get receiving payment for URL statement failed
-	if(sqlite3_prepare_v3(databaseConnection, "SELECT \"Unique Number\", \"ID\", \"Price\" FROM \"Payments\" WHERE \"URL\" = ? AND \"Received\" IS NULL AND (\"Expires\" IS NULL OR UNIXEPOCH('now') < \"Expires\");", -1, SQLITE_PREPARE_PERSISTENT, &getReceivingPaymentForUrlStatement, nullptr) != SQLITE_OK) {
+	if(sqlite3_prepare_v3(databaseConnection, "SELECT \"Unique Number\", \"ID\", \"Price\", \"Received Callback\" FROM \"Payments\" WHERE \"URL\" = ? AND \"Received\" IS NULL AND (\"Expires\" IS NULL OR UNIXEPOCH('now') < \"Expires\");", -1, SQLITE_PREPARE_PERSISTENT, &getReceivingPaymentForUrlStatement, nullptr) != SQLITE_OK) {
 	
 		// Throw exception
 		throw runtime_error("Preparing get receiving payment for URL statement failed");
@@ -243,7 +288,7 @@ Payments::Payments(sqlite3 *databaseConnection) :
 	unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> getReceivingPaymentForUrlStatementUniquePointer(getReceivingPaymentForUrlStatement, sqlite3_finalize);
 	
 	// Check if preparing get completed payments statement failed
-	if(sqlite3_prepare_v3(databaseConnection, "SELECT \"Unique Number\", \"ID\", \"URL\", \"Created\", \"Completed\", \"Price\", \"Required Confirmations\", \"Received\", \"Completed Callback\", \"Completed Callback Successful\", \"Sender Payment Proof Address\", \"Kernel Commitment\", \"Confirmed Height\" FROM \"Payments\" WHERE \"Completed\" IS NOT NULL ORDER BY \"Completed\" ASC;", -1, 0, &getCompletedPaymentsStatement, nullptr) != SQLITE_OK) {
+	if(sqlite3_prepare_v3(databaseConnection, "SELECT \"Unique Number\", \"ID\", \"URL\", \"Created\", \"Completed\", \"Price\", \"Required Confirmations\", \"Received\", \"Completed Callback\", \"Completed Callback Successful\", \"Sender Payment Proof Address\", \"Kernel Commitment\", \"Confirmed Height\", \"Received Callback\" FROM \"Payments\" WHERE \"Completed\" IS NOT NULL ORDER BY \"Completed\" ASC;", -1, 0, &getCompletedPaymentsStatement, nullptr) != SQLITE_OK) {
 	
 		// Throw exception
 		throw runtime_error("Preparing get completed payments statement failed");
@@ -253,7 +298,7 @@ Payments::Payments(sqlite3 *databaseConnection) :
 	unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> getCompletedPaymentsStatementUniquePointer(getCompletedPaymentsStatement, sqlite3_finalize);
 	
 	// Check if preparing get payment statement failed
-	if(sqlite3_prepare_v3(databaseConnection, "SELECT \"Unique Number\", \"URL\", \"Created\", \"Completed\", \"Price\", \"Required Confirmations\", \"Received\", \"Completed Callback\", \"Completed Callback Successful\", \"Sender Payment Proof Address\", \"Kernel Commitment\", \"Confirmed Height\", IIF(\"Received\" IS NULL AND \"Expires\" IS NOT NULL AND UNIXEPOCH('now') >= \"Expires\", 'Expired', IIF(\"Received\" IS NULL, 'Not received', IIF(\"Confirmations\" = 0, 'Received', IIF(\"Completed\" IS NULL, 'Confirmed', 'Completed')))) AS \"Status\" FROM \"Payments\" WHERE \"ID\" = ?;", -1, 0, &getPaymentStatement, nullptr) != SQLITE_OK) {
+	if(sqlite3_prepare_v3(databaseConnection, "SELECT \"Unique Number\", \"URL\", \"Created\", \"Completed\", \"Price\", \"Required Confirmations\", \"Received\", \"Completed Callback\", \"Completed Callback Successful\", \"Sender Payment Proof Address\", \"Kernel Commitment\", \"Confirmed Height\", IIF(\"Received\" IS NULL AND \"Expires\" IS NOT NULL AND UNIXEPOCH('now') >= \"Expires\", 'Expired', IIF(\"Received\" IS NULL, 'Not received', IIF(\"Confirmations\" = 0, 'Received', IIF(\"Completed\" IS NULL, 'Confirmed', 'Completed')))) AS \"Status\", \"Received Callback\" FROM \"Payments\" WHERE \"ID\" = ?;", -1, 0, &getPaymentStatement, nullptr) != SQLITE_OK) {
 	
 		// Throw exception
 		throw runtime_error("Preparing get payment statement failed");
@@ -589,7 +634,7 @@ Payments::~Payments() {
 }
 
 // Create payment
-bool Payments::createPayment(const uint64_t id, const char *url, const uint64_t price, const uint32_t requiredConfirmations, const uint32_t timeout, const char *completedCallback) {
+bool Payments::createPayment(const uint64_t id, const char *url, const uint64_t price, const uint32_t requiredConfirmations, const uint32_t timeout, const char *completedCallback, const char *receivedCallback) {
 
 	// Try
 	try {
@@ -608,7 +653,7 @@ bool Payments::createPayment(const uint64_t id, const char *url, const uint64_t 
 			}
 		
 			// Check if binding create payment with expiration statement's values failed
-			if(sqlite3_bind_int64(createPaymentWithExpirationStatement, 1, *reinterpret_cast<const int64_t *>(&id)) != SQLITE_OK || sqlite3_bind_text(createPaymentWithExpirationStatement, 2, url, -1, SQLITE_STATIC) != SQLITE_OK || (price ? sqlite3_bind_int64(createPaymentWithExpirationStatement, 3, *reinterpret_cast<const int64_t *>(&price)) : sqlite3_bind_null(createPaymentWithExpirationStatement, 3)) != SQLITE_OK || sqlite3_bind_int64(createPaymentWithExpirationStatement, 4, requiredConfirmations) != SQLITE_OK || sqlite3_bind_int64(createPaymentWithExpirationStatement, 5, timeout) != SQLITE_OK || sqlite3_bind_text(createPaymentWithExpirationStatement, 6, completedCallback, -1, SQLITE_STATIC) != SQLITE_OK) {
+			if(sqlite3_bind_int64(createPaymentWithExpirationStatement, 1, *reinterpret_cast<const int64_t *>(&id)) != SQLITE_OK || sqlite3_bind_text(createPaymentWithExpirationStatement, 2, url, -1, SQLITE_STATIC) != SQLITE_OK || (price ? sqlite3_bind_int64(createPaymentWithExpirationStatement, 3, *reinterpret_cast<const int64_t *>(&price)) : sqlite3_bind_null(createPaymentWithExpirationStatement, 3)) != SQLITE_OK || sqlite3_bind_int64(createPaymentWithExpirationStatement, 4, requiredConfirmations) != SQLITE_OK || sqlite3_bind_int64(createPaymentWithExpirationStatement, 5, timeout) != SQLITE_OK || sqlite3_bind_text(createPaymentWithExpirationStatement, 6, completedCallback, -1, SQLITE_STATIC) != SQLITE_OK || (receivedCallback ? sqlite3_bind_text(createPaymentWithExpirationStatement, 7, receivedCallback, -1, SQLITE_STATIC) : sqlite3_bind_null(createPaymentWithExpirationStatement, 7)) != SQLITE_OK) {
 			
 				// Return false
 				return false;
@@ -636,7 +681,7 @@ bool Payments::createPayment(const uint64_t id, const char *url, const uint64_t 
 			}
 			
 			// Check if binding create payment statement's values failed
-			if(sqlite3_bind_int64(createPaymentStatement, 1, *reinterpret_cast<const int64_t *>(&id)) != SQLITE_OK || sqlite3_bind_text(createPaymentStatement, 2, url, -1, SQLITE_STATIC) != SQLITE_OK || (price ? sqlite3_bind_int64(createPaymentStatement, 3, *reinterpret_cast<const int64_t *>(&price)) : sqlite3_bind_null(createPaymentStatement, 3)) != SQLITE_OK || sqlite3_bind_int64(createPaymentStatement, 4, requiredConfirmations) != SQLITE_OK || sqlite3_bind_text(createPaymentStatement, 5, completedCallback, -1, SQLITE_STATIC) != SQLITE_OK) {
+			if(sqlite3_bind_int64(createPaymentStatement, 1, *reinterpret_cast<const int64_t *>(&id)) != SQLITE_OK || sqlite3_bind_text(createPaymentStatement, 2, url, -1, SQLITE_STATIC) != SQLITE_OK || (price ? sqlite3_bind_int64(createPaymentStatement, 3, *reinterpret_cast<const int64_t *>(&price)) : sqlite3_bind_null(createPaymentStatement, 3)) != SQLITE_OK || sqlite3_bind_int64(createPaymentStatement, 4, requiredConfirmations) != SQLITE_OK || sqlite3_bind_text(createPaymentStatement, 5, completedCallback, -1, SQLITE_STATIC) != SQLITE_OK || (receivedCallback ? sqlite3_bind_text(createPaymentStatement, 6, receivedCallback, -1, SQLITE_STATIC) : sqlite3_bind_null(createPaymentStatement, 6)) != SQLITE_OK) {
 			
 				// Return false
 				return false;
@@ -747,7 +792,7 @@ tuple<uint64_t, string, optional<uint64_t>, uint64_t, bool, uint64_t, optional<u
 }
 
 // Get receiving payment for URL
-tuple<uint64_t, uint64_t, optional<uint64_t>> Payments::getReceivingPaymentForUrl(const char *url) {
+tuple<uint64_t, uint64_t, optional<uint64_t>, optional<string>> Payments::getReceivingPaymentForUrl(const char *url) {
 
 	// Check if resetting and clearing get receiving payment for URL statement failed
 	if(sqlite3_reset(getReceivingPaymentForUrlStatement) != SQLITE_OK || sqlite3_clear_bindings(getReceivingPaymentForUrlStatement) != SQLITE_OK) {
@@ -780,7 +825,7 @@ tuple<uint64_t, uint64_t, optional<uint64_t>> Payments::getReceivingPaymentForUr
 		// Create result from payment's info
 		const int64_t idStorage = sqlite3_column_int64(getReceivingPaymentForUrlStatement, 1);
 		const int64_t priceStorage = (sqlite3_column_type(getReceivingPaymentForUrlStatement, 2) == SQLITE_NULL) ? 0 : sqlite3_column_int64(getReceivingPaymentForUrlStatement, 2);
-		const tuple<uint64_t, uint64_t, optional<uint64_t>> result(
+		const tuple<uint64_t, uint64_t, optional<uint64_t>, optional<string>> result(
 		
 			// Unique number
 			sqlite3_column_int64(getReceivingPaymentForUrlStatement, 0),
@@ -789,7 +834,10 @@ tuple<uint64_t, uint64_t, optional<uint64_t>> Payments::getReceivingPaymentForUr
 			*reinterpret_cast<const uint64_t *>(&idStorage),
 			
 			// Price
-			(sqlite3_column_type(getReceivingPaymentForUrlStatement, 2) == SQLITE_NULL) ? nullopt : optional<uint64_t>(*reinterpret_cast<const uint64_t *>(&priceStorage))
+			(sqlite3_column_type(getReceivingPaymentForUrlStatement, 2) == SQLITE_NULL) ? nullopt : optional<uint64_t>(*reinterpret_cast<const uint64_t *>(&priceStorage)),
+			
+			// Received callback
+			(sqlite3_column_type(getReceivingPaymentForUrlStatement, 3) == SQLITE_NULL) ? nullopt : optional<string>(reinterpret_cast<const char *>(sqlite3_column_text(getReceivingPaymentForUrlStatement, 3)))
 		);
 	
 		// Check if running get receiving payment for URL statement failed
@@ -905,6 +953,20 @@ void Payments::displayCompletedPayments(const Wallet &wallet) {
 			
 			// Display payment's payment proof signature
 			cout << "\tRecipient payment proof signature: " << Common::toHexString(recipientPaymentProofSignature, sizeof(recipientPaymentProofSignature)) << endl;
+			
+			// check if payment doesn't have a received callback
+			if(sqlite3_column_type(getCompletedPaymentsStatement, 13) == SQLITE_NULL) {
+			
+				// Display payment's received callback
+				cout << "\tReceived callback: N/A" << endl;
+			}
+			
+			// Otherwise
+			else {
+			
+				// Display payment's received callback
+				cout << "\tReceived callback: " << sqlite3_column_text(getCompletedPaymentsStatement, 13) << endl;
+			}
 			
 			// Display payment's completed callback
 			cout << "\tCompleted callback: " << sqlite3_column_text(getCompletedPaymentsStatement, 8) << endl;
@@ -1093,6 +1155,20 @@ void Payments::displayPayment(const uint64_t id, const Wallet &wallet) {
 			
 			// Display payment's recipient payment proof addresses
 			cout << "\tRecipient payment proof address: " << wallet.getTorPaymentProofAddress(paymentProofIndex) << endl;
+			
+			// check if payment doesn't have a received callback
+			if(sqlite3_column_type(getPaymentStatement, 13) == SQLITE_NULL) {
+			
+				// Display payment's received callback
+				cout << "\tReceived callback: N/A" << endl;
+			}
+			
+			// Otherwise
+			else {
+			
+				// Display payment's received callback
+				cout << "\tReceived callback: " << sqlite3_column_text(getPaymentStatement, 13) << endl;
+			}
 			
 			// Display payment's completed callback
 			cout << "\tCompleted callback: " << sqlite3_column_text(getPaymentStatement, 7) << endl;

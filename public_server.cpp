@@ -1447,61 +1447,131 @@ void PublicServer::handleGenericRequest(evhttp_request *request) {
 																				// Check if an error didn't occur
 																				if(!errorOccurred) {
 																				
-																					// Get payment ID
-																					const uint64_t &paymentId = get<1>(paymentInfo);
+																					// Check if payment has a received callback
+																					if(get<3>(paymentInfo).has_value()) {
 																					
-																					// Check if setting that payment is received failed
-																					if(!payments.setPaymentReceived(paymentId, slate.getAmount(), senderPaymentProofAddress.c_str(), excess, slate.getParticipants().front().getPublicBlindExcess(), partialSignature, publicNonceSum, kernelData.data(), kernelData.size())) {
+																						// Try
+																						try {
 																					
-																						// Check if compressing and removing request's response's content encoding and vary headers failed
-																						if(compress && (evhttp_remove_header(evhttp_request_get_output_headers(request), "Content-Encoding") || evhttp_remove_header(evhttp_request_get_output_headers(request), "Vary"))) {
-																						
-																							// Remove request's response's content encoding and vary headers
-																							evhttp_remove_header(evhttp_request_get_output_headers(request), "Content-Encoding");
-																							evhttp_remove_header(evhttp_request_get_output_headers(request), "Vary");
+																							// Check if sending HTTP request to the payment's received callback failed
+																							const string &paymentReceivedCallback = get<3>(paymentInfo).value();
+																							if(!Common::sendHttpRequest(paymentReceivedCallback.c_str())) {
 																							
-																							// Remove request's response's content type header
-																							evhttp_remove_header(evhttp_request_get_output_headers(request), "Content-Type");
-																							
-																							// Reply with internal server error response to request
-																							evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
-																							
-																							// Return
-																							return;
+																								// Throw exception
+																								throw runtime_error("Sending HTTP request to the payment's received callback failed");
+																							}
 																						}
 																						
-																						// Check if clearing buffer failed
-																						if(evbuffer_drain(buffer.get(), evbuffer_get_length(buffer.get()))) {
+																						// Catch errors
+																						catch(...) {
 																						
-																							// Remove request's response's content type header
-																							evhttp_remove_header(evhttp_request_get_output_headers(request), "Content-Type");
+																							// Set error occurred
+																							errorOccurred = true;
 																							
-																							// Reply with internal server error response to request
-																							evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
+																							// Check if compressing and removing request's response's content encoding and vary headers failed
+																							if(compress && (evhttp_remove_header(evhttp_request_get_output_headers(request), "Content-Encoding") || evhttp_remove_header(evhttp_request_get_output_headers(request), "Vary"))) {
 																							
-																							// Return
-																							return;
-																						}
-																						
-																						// Check if adding internal error JSON-RPC error to buffer failed
-																						if(evbuffer_add_printf(buffer.get(), "{\"jsonrpc\":\"2.0\",\"id\":%" PRIu64 ",\"error\":{\"code\":-32603,\"message\":\"Internal error\"}}", json["id"].get_uint64().value()) == -1) {
-																						
-																							// Remove request's response's content type header
-																							evhttp_remove_header(evhttp_request_get_output_headers(request), "Content-Type");
+																								// Remove request's response's content encoding and vary headers
+																								evhttp_remove_header(evhttp_request_get_output_headers(request), "Content-Encoding");
+																								evhttp_remove_header(evhttp_request_get_output_headers(request), "Vary");
+																								
+																								// Remove request's response's content type header
+																								evhttp_remove_header(evhttp_request_get_output_headers(request), "Content-Type");
+																								
+																								// Reply with internal server error response to request
+																								evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
+																								
+																								// Return
+																								return;
+																							}
 																							
-																							// Reply with internal server error response to request
-																							evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
+																							// Check if clearing buffer failed
+																							if(evbuffer_drain(buffer.get(), evbuffer_get_length(buffer.get()))) {
 																							
-																							// Return
-																							return;
+																								// Remove request's response's content type header
+																								evhttp_remove_header(evhttp_request_get_output_headers(request), "Content-Type");
+																								
+																								// Reply with internal server error response to request
+																								evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
+																								
+																								// Return
+																								return;
+																							}
+																							
+																							// Check if adding internal error JSON-RPC error to buffer failed
+																							if(evbuffer_add_printf(buffer.get(), "{\"jsonrpc\":\"2.0\",\"id\":%" PRIu64 ",\"error\":{\"code\":-32603,\"message\":\"Internal error\"}}", json["id"].get_uint64().value()) == -1) {
+																							
+																								// Remove request's response's content type header
+																								evhttp_remove_header(evhttp_request_get_output_headers(request), "Content-Type");
+																								
+																								// Reply with internal server error response to request
+																								evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
+																								
+																								// Return
+																								return;
+																							}
 																						}
 																					}
 																					
-																					// Otherwise
-																					else {
-																					
-																						// Display message
-																						osyncstream(cout) << "Received payment " << paymentId << endl;
+																					// Check if an error didn't occur
+																					if(!errorOccurred) {
+																				
+																						// Get payment ID
+																						const uint64_t &paymentId = get<1>(paymentInfo);
+																						
+																						// Check if setting that payment is received failed
+																						if(!payments.setPaymentReceived(paymentId, slate.getAmount(), senderPaymentProofAddress.c_str(), excess, slate.getParticipants().front().getPublicBlindExcess(), partialSignature, publicNonceSum, kernelData.data(), kernelData.size())) {
+																						
+																							// Check if compressing and removing request's response's content encoding and vary headers failed
+																							if(compress && (evhttp_remove_header(evhttp_request_get_output_headers(request), "Content-Encoding") || evhttp_remove_header(evhttp_request_get_output_headers(request), "Vary"))) {
+																							
+																								// Remove request's response's content encoding and vary headers
+																								evhttp_remove_header(evhttp_request_get_output_headers(request), "Content-Encoding");
+																								evhttp_remove_header(evhttp_request_get_output_headers(request), "Vary");
+																								
+																								// Remove request's response's content type header
+																								evhttp_remove_header(evhttp_request_get_output_headers(request), "Content-Type");
+																								
+																								// Reply with internal server error response to request
+																								evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
+																								
+																								// Return
+																								return;
+																							}
+																							
+																							// Check if clearing buffer failed
+																							if(evbuffer_drain(buffer.get(), evbuffer_get_length(buffer.get()))) {
+																							
+																								// Remove request's response's content type header
+																								evhttp_remove_header(evhttp_request_get_output_headers(request), "Content-Type");
+																								
+																								// Reply with internal server error response to request
+																								evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
+																								
+																								// Return
+																								return;
+																							}
+																							
+																							// Check if adding internal error JSON-RPC error to buffer failed
+																							if(evbuffer_add_printf(buffer.get(), "{\"jsonrpc\":\"2.0\",\"id\":%" PRIu64 ",\"error\":{\"code\":-32603,\"message\":\"Internal error\"}}", json["id"].get_uint64().value()) == -1) {
+																							
+																								// Remove request's response's content type header
+																								evhttp_remove_header(evhttp_request_get_output_headers(request), "Content-Type");
+																								
+																								// Reply with internal server error response to request
+																								evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
+																								
+																								// Return
+																								return;
+																							}
+																						}
+																						
+																						// Otherwise
+																						else {
+																						
+																							// Display message
+																							osyncstream(cout) << "Received payment " << paymentId << endl;
+																						}
 																					}
 																				}
 																			}

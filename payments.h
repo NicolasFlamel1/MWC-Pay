@@ -46,14 +46,20 @@ class Payments final {
 		// Maximum completed callback size
 		static const size_t MAXIMUM_COMPLETED_CALLBACK_SIZE;
 		
+		// Maximum Received callback size
+		static const size_t MAXIMUM_RECEIVED_CALLBACK_SIZE;
+		
+		// No received callback
+		static const char *NO_RECEIVED_CALLBACK;
+		
 		// Create payment
-		bool createPayment(const uint64_t id, const char *url, const uint64_t price, const uint32_t requiredConfirmations, const uint32_t timeout, const char *completedCallback);
+		bool createPayment(const uint64_t id, const char *url, const uint64_t price, const uint32_t requiredConfirmations, const uint32_t timeout, const char *completedCallback, const char *receivedCallback);
 		
 		// Get payment info
 		tuple<uint64_t, string, optional<uint64_t>, uint64_t, bool, uint64_t, optional<uint64_t>, string> getPaymentInfo(const uint64_t id);
 		
 		// Get receiving payment for URL
-		tuple<uint64_t, uint64_t, optional<uint64_t>> getReceivingPaymentForUrl(const char *url);
+		tuple<uint64_t, uint64_t, optional<uint64_t>, optional<string>> getReceivingPaymentForUrl(const char *url);
 		
 		// Display completed payments
 		void displayCompletedPayments(const Wallet &wallet);

@@ -811,6 +811,43 @@ void PrivateServer::handleCreatePaymentRequest(evhttp_request *request) {
 		return;
 	}
 	
+	// Check if received callback parameter is provided
+	const char *receivedCallback = evhttp_find_header(&queryValues, "received_callback");
+	if(receivedCallback) {
+	
+		// Check if received callback parameter isn't too long
+		if(strlen(receivedCallback) <= Payments::MAXIMUM_RECEIVED_CALLBACK_SIZE) {
+	
+			// Check if received callback is invalid
+			const unique_ptr<evhttp_uri, decltype(&evhttp_uri_free)> receivedCallbackUri(evhttp_uri_parse(receivedCallback), evhttp_uri_free);
+			if(!receivedCallbackUri || (strncasecmp(receivedCallback, "http://", sizeof("http://") - sizeof('\0')) && strncasecmp(receivedCallback, "https://", sizeof("https://") - sizeof('\0'))) || !evhttp_uri_get_scheme(receivedCallbackUri.get()) || !evhttp_uri_get_host(receivedCallbackUri.get()) || evhttp_uri_get_unixsocket(receivedCallbackUri.get()) || evhttp_uri_get_fragment(receivedCallbackUri.get()) || (strcasecmp(evhttp_uri_get_scheme(receivedCallbackUri.get()), "http") && strcasecmp(evhttp_uri_get_scheme(receivedCallbackUri.get()), "https")) || !*evhttp_uri_get_host(receivedCallbackUri.get()) || !evhttp_uri_get_port(receivedCallbackUri.get())) {
+			
+				// Reply with bad request response to request
+				evhttp_send_reply(request, HTTP_BADREQUEST, nullptr, nullptr);
+				
+				// Return
+				return;
+			}
+		}
+		
+		// Otherwise
+		else {
+		
+			// Reply with bad request response to request
+			evhttp_send_reply(request, HTTP_BADREQUEST, nullptr, nullptr);
+			
+			// Return
+			return;
+		}
+	}
+	
+	// Otherwise
+	else {
+	
+		// Set received callback to no received callback
+		receivedCallback = Payments::NO_RECEIVED_CALLBACK;
+	}
+	
 	// Check if creating random ID failed
 	uint64_t id;
 	if(RAND_bytes_ex(nullptr, reinterpret_cast<uint8_t *>(&id), sizeof(id), RAND_DRBG_STRENGTH) != 1) {
@@ -875,7 +912,7 @@ void PrivateServer::handleCreatePaymentRequest(evhttp_request *request) {
 	}
 	
 	// Check if creating payment failed
-	if(!payments.createPayment(id, url, price, requiredConfirmations, timeout, completedCallback)) {
+	if(!payments.createPayment(id, url, price, requiredConfirmations, timeout, completedCallback, receivedCallback)) {
 	
 		// Remove request's response's content type header
 		evhttp_remove_header(evhttp_request_get_output_headers(request), "Content-Type");
