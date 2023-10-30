@@ -53,7 +53,7 @@ class Payments final {
 		static const char *NO_RECEIVED_CALLBACK;
 		
 		// Create payment
-		bool createPayment(const uint64_t id, const char *url, const uint64_t price, const uint32_t requiredConfirmations, const uint32_t timeout, const char *completedCallback, const char *receivedCallback);
+		uint64_t createPayment(const uint64_t id, const char *url, const uint64_t price, const uint32_t requiredConfirmations, const uint32_t timeout, const char *completedCallback, const char *receivedCallback);
 		
 		// Get payment info
 		tuple<uint64_t, string, optional<uint64_t>, uint64_t, bool, uint64_t, optional<uint64_t>, string> getPaymentInfo(const uint64_t id);

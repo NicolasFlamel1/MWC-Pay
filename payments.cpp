@@ -634,8 +634,11 @@ Payments::~Payments() {
 }
 
 // Create payment
-bool Payments::createPayment(const uint64_t id, const char *url, const uint64_t price, const uint32_t requiredConfirmations, const uint32_t timeout, const char *completedCallback, const char *receivedCallback) {
+uint64_t Payments::createPayment(const uint64_t id, const char *url, const uint64_t price, const uint32_t requiredConfirmations, const uint32_t timeout, const char *completedCallback, const char *receivedCallback) {
 
+	// Initialize result
+	uint64_t result;
+	
 	// Try
 	try {
 	
@@ -648,15 +651,15 @@ bool Payments::createPayment(const uint64_t id, const char *url, const uint64_t 
 			// Check if resetting and clearing create payment with expiration statement failed
 			if(sqlite3_reset(createPaymentWithExpirationStatement) != SQLITE_OK || sqlite3_clear_bindings(createPaymentWithExpirationStatement) != SQLITE_OK) {
 			
-				// Return false
-				return false;
+				// Return zero
+				return 0;
 			}
 		
 			// Check if binding create payment with expiration statement's values failed
 			if(sqlite3_bind_int64(createPaymentWithExpirationStatement, 1, *reinterpret_cast<const int64_t *>(&id)) != SQLITE_OK || sqlite3_bind_text(createPaymentWithExpirationStatement, 2, url, -1, SQLITE_STATIC) != SQLITE_OK || (price ? sqlite3_bind_int64(createPaymentWithExpirationStatement, 3, *reinterpret_cast<const int64_t *>(&price)) : sqlite3_bind_null(createPaymentWithExpirationStatement, 3)) != SQLITE_OK || sqlite3_bind_int64(createPaymentWithExpirationStatement, 4, requiredConfirmations) != SQLITE_OK || sqlite3_bind_int64(createPaymentWithExpirationStatement, 5, timeout) != SQLITE_OK || sqlite3_bind_text(createPaymentWithExpirationStatement, 6, completedCallback, -1, SQLITE_STATIC) != SQLITE_OK || (receivedCallback ? sqlite3_bind_text(createPaymentWithExpirationStatement, 7, receivedCallback, -1, SQLITE_STATIC) : sqlite3_bind_null(createPaymentWithExpirationStatement, 7)) != SQLITE_OK) {
 			
-				// Return false
-				return false;
+				// Return zero
+				return 0;
 			}
 			
 			// Check if running create payment with expiration statement failed
@@ -665,8 +668,8 @@ bool Payments::createPayment(const uint64_t id, const char *url, const uint64_t 
 				// Reset create payment with expiration statement
 				sqlite3_reset(createPaymentWithExpirationStatement);
 				
-				// Return false
-				return false;
+				// Return zero
+				return 0;
 			}
 		}
 		
@@ -676,15 +679,15 @@ bool Payments::createPayment(const uint64_t id, const char *url, const uint64_t 
 			// Check if resetting and clearing create payment statement failed
 			if(sqlite3_reset(createPaymentStatement) != SQLITE_OK || sqlite3_clear_bindings(createPaymentStatement) != SQLITE_OK) {
 			
-				// Return false
-				return false;
+				// Return zero
+				return 0;
 			}
 			
 			// Check if binding create payment statement's values failed
 			if(sqlite3_bind_int64(createPaymentStatement, 1, *reinterpret_cast<const int64_t *>(&id)) != SQLITE_OK || sqlite3_bind_text(createPaymentStatement, 2, url, -1, SQLITE_STATIC) != SQLITE_OK || (price ? sqlite3_bind_int64(createPaymentStatement, 3, *reinterpret_cast<const int64_t *>(&price)) : sqlite3_bind_null(createPaymentStatement, 3)) != SQLITE_OK || sqlite3_bind_int64(createPaymentStatement, 4, requiredConfirmations) != SQLITE_OK || sqlite3_bind_text(createPaymentStatement, 5, completedCallback, -1, SQLITE_STATIC) != SQLITE_OK || (receivedCallback ? sqlite3_bind_text(createPaymentStatement, 6, receivedCallback, -1, SQLITE_STATIC) : sqlite3_bind_null(createPaymentStatement, 6)) != SQLITE_OK) {
 			
-				// Return false
-				return false;
+				// Return zero
+				return 0;
 			}
 			
 			// Check if running create payment statement failed
@@ -693,21 +696,24 @@ bool Payments::createPayment(const uint64_t id, const char *url, const uint64_t 
 				// Reset create payment statement
 				sqlite3_reset(createPaymentStatement);
 				
-				// Return false
-				return false;
+				// Return zero
+				return 0;
 			}
 		}
+		
+		// Set result to payment's unique number
+		result = sqlite3_last_insert_rowid(databaseConnection);
 	}
 	
 	// Catch errors
 	catch(...) {
 	
-		// Return false
-		return false;
+		// Return zero
+		return 0;
 	}
 	
-	// Return true
-	return true;
+	// Return result
+	return result;
 }
 
 // Get payment info

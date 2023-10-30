@@ -888,16 +888,6 @@ void PrivateServer::handleCreatePaymentRequest(evhttp_request *request) {
 		return;
 	}
 	
-	// Check if adding payment ID to buffer failed
-	if(evbuffer_add_printf(buffer.get(), "{\"payment_id\":\"%" PRIu64 "\"}", id) == -1) {
-	
-		// Reply with internal server error response to request
-		evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
-		
-		// Return
-		return;
-	}
-	
 	// Check if setting request's response's content type header failed
 	if(evhttp_add_header(evhttp_request_get_output_headers(request), "Content-Type", "application/json; charset=utf-8")) {
 	
@@ -912,11 +902,28 @@ void PrivateServer::handleCreatePaymentRequest(evhttp_request *request) {
 	}
 	
 	// Check if creating payment failed
-	if(!payments.createPayment(id, url, price, requiredConfirmations, timeout, completedCallback, receivedCallback)) {
+	const uint64_t paymentProofIndex = payments.createPayment(id, url, price, requiredConfirmations, timeout, completedCallback, receivedCallback);
+	if(!paymentProofIndex) {
 	
 		// Remove request's response's content type header
 		evhttp_remove_header(evhttp_request_get_output_headers(request), "Content-Type");
 	
+		// Reply with internal server error response to request
+		evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
+		
+		// Return
+		return;
+	}
+	
+	// Get wallet's Tor payment proof address at the payment proof index
+	const string paymentProofAddress = wallet.getTorPaymentProofAddress(paymentProofIndex);
+	
+	// Check if adding payment info to buffer failed
+	if(evbuffer_add_printf(buffer.get(), "{\"payment_id\":\"%" PRIu64 "\",\"url\":\"%s\",\"payment_proof_address\":\"%s\"}", id, url, paymentProofAddress.c_str()) == -1) {
+	
+		// Remove request's response's content type header
+		evhttp_remove_header(evhttp_request_get_output_headers(request), "Content-Type");
+		
 		// Reply with internal server error response to request
 		evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
 		

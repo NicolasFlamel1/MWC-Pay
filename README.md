@@ -28,10 +28,9 @@ MWC Pay consists of the following components:
 * Public server: Provides the APIs to received payments.
 
 A high level overview of a payment's life cycle when using MWC Pay consists of the following steps:
-1. The merchant sends a request to the private server to create a payment.
-2. The merchant gets a URL for the payment by sending a request to the private server.
-3. The buyer sends MimbleWimble Coin to that URL.
-4. The payment's completed callback is ran once the payment achieves the desired number of on-chain confirmations.
+1. The merchant sends a request to the private server to create a payment and gets the payment's URL from the response.
+2. The buyer sends MimbleWimble Coin to that URL.
+3. The payment's completed callback is ran once the payment achieves the desired number of on-chain confirmations.
 
 MWC Pay also accepts the following command line arguments:
 * `-v, --version`: Displays version information
@@ -69,7 +68,7 @@ MWC Pay also accepts the following command line arguments:
 ### Private Server API
 MWC Pay's private server allows for payments to be created, and it provides the following APIs which are accessible via HTTP GET requests with parameters provided in the request's query string:
 
-1. `create_payment(price, required_confirmations, timeout, completed_callback, received_callback)`: Creates a payment with the provided parameters and returns its ID in a JSON response.
+1. `create_payment(price, required_confirmations, timeout, completed_callback, received_callback)`: Creates a payment with the provided parameters and returns its ID, URL, and payment proof address in a JSON response.
 
    The provided parameters are the following:
    * `price` (optional): The expected amount for the payment. If not provided then any amount will fulfill the payment.
@@ -79,7 +78,7 @@ MWC Pay's private server allows for payments to be created, and it provides the 
    * `received_callback` (optional): The HTTP GET request that will be performed when the payment is received. If the response status code to this request isn't `HTTP 200 OK`, then an `HTTP 500 Internal Error` response will be sent to the payment's sender when they are sending the payment. This request can't follow redirects. This request may happen multiple times despite a previous attempt receiving an `HTTP 200 OK` response status code, so make sure to prepare for this and to respond to all requests with an `HTTP 200 OK` response status code if the request has already happened. All instances of `__id__`, `__price__`, `__sender_payment_proof_address__`, `__kernel_commitment__`, and `__recipient_payment_proof_signature__` are replaced with the payment's ID, price, sender payment proof address, kernel commitment, and recipient payment proof signature respectively. If not provided then no request will be performed when the payment is received.
 
    A response to this request will have one of the following status codes:
-   * `HTTP 200 OK`: The payment was successfully created and its ID is included in the response.
+   * `HTTP 200 OK`: The payment was successfully created and its ID, URL, and payment proof address are included in the response.
    * `HTTP 500 Internal Error`: An error occurred.
 
    Any other response status codes should be considered the equivalent of an `HTTP 400 Bad Request` status code.
@@ -87,7 +86,7 @@ MWC Pay's private server allows for payments to be created, and it provides the 
    Example:
    * Request: `http://localhost:9010/create_payment?price=123.456&required_confirmations=5&timeout=600&completed_callback=http%3A%2F%2Fexample.com%2F&received_callback=http%3A%2F%2Fexample.com%2F`
    * Request: `http://localhost:9010/create_payment?completed_callback=http%3A%2F%2Fexample.com%2F`
-   * Response: `{"payment_id": "123"}`
+   * Response: `{"payment_id": "123", "url": "abc", "payment_proof_address": "52cflcqg7mr2b2mbg6x62huvut3sufz3gthjblo7yn7snfohrv54nxqd"}`
 
 2. `get_payment_info(payment_id)`: Returns the URL, price, required confirmations, if received, confirmations, time remaining, status, and payment proof address for a payment with the provided ID.
 
