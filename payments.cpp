@@ -1602,17 +1602,28 @@ void Payments::runUnsuccessfulCompletedPaymentCallbacks() {
 	try {
 
 		// Go through all unsuccessful completed callback payments
-		for(const tuple<uint64_t, string> &paymentInfo : getUnsuccessfulCompletedCallbackPayments()) {
+		for(tuple<uint64_t, string> &paymentInfo : getUnsuccessfulCompletedCallbackPayments()) {
 		
 			// Try
 			try {
+			
+				// Get payment ID
+				const uint64_t &paymentId = get<0>(paymentInfo);
+			
+				// Get payment's completed callback
+				string &paymentCompletedCallback = get<1>(paymentInfo);
+				
+				// Apply substitutions to payment's completed callback
+				Common::applySubstitutions(paymentCompletedCallback, {
+				
+					// ID
+					{"__id__", to_string(paymentId)}
+				});
 		
 				// Check if sending HTTP request to the payment's completed callback was successful
-				const string &paymentCompletedCallback = get<1>(paymentInfo);
 				if(Common::sendHttpRequest(paymentCompletedCallback.c_str())) {
 				
 					// Set that payment's completed callback was successful
-					const uint64_t &paymentId = get<0>(paymentInfo);
 					setPaymentSuccessfulCompletedCallback(paymentId);
 				}
 			}

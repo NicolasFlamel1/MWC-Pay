@@ -7,6 +7,7 @@
 #include <atomic>
 #include <cstdint>
 #include <signal.h>
+#include <unordered_map>
 
 using namespace std;
 
@@ -99,6 +100,9 @@ class Common final {
 		
 		// Send HTTP request
 		static bool sendHttpRequest(const char *destination);
+		
+		// Apply substitutions
+		static void applySubstitutions(string &text, const unordered_map<string, string> &substitutions);
 	
 	// Private
 	private:

@@ -471,3 +471,22 @@ bool Common::sendHttpRequest(const char *destination) {
 		return false;
 	}
 }
+
+// Apply substitutions
+void Common::applySubstitutions(string &text, const unordered_map<string, string> &substitutions) {
+
+	// Go through all substitutions
+	for(unordered_map<string, string>::const_iterator i = substitutions.begin(); i != substitutions.end(); ++i) {
+	
+		// Loop through all occurances in the text
+		string::size_type index = 0;
+		while((index = text.find(i->first, index)) != string::npos) {
+		
+			// Replace occurance with substitution
+			text.replace(index, i->first.size(), i->second);
+			
+			// Update index
+			index += i->second.size();
+		}
+	}
+}

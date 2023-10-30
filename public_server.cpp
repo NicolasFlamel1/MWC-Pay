@@ -616,7 +616,7 @@ void PublicServer::handleGenericRequest(evhttp_request *request) {
 		unique_lock lockPayments(payments.getLock());
 		
 		// Check if payment doesn't exist, it was already received, or it is expired
-		const tuple paymentInfo = payments.getReceivingPaymentForUrl(paymentUrl);
+		tuple paymentInfo = payments.getReceivingPaymentForUrl(paymentUrl);
 		if(!get<0>(paymentInfo)) {
 		
 			// Reply with not found response to request
@@ -1447,14 +1447,38 @@ void PublicServer::handleGenericRequest(evhttp_request *request) {
 																				// Check if an error didn't occur
 																				if(!errorOccurred) {
 																				
+																					// Get payment ID
+																					const uint64_t &paymentId = get<1>(paymentInfo);
+																				
 																					// Check if payment has a received callback
 																					if(get<3>(paymentInfo).has_value()) {
 																					
 																						// Try
 																						try {
+																						
+																							// Get payment's received callback
+																							string &paymentReceivedCallback = get<3>(paymentInfo).value();
+																							
+																							// Apply substitutions to payment's received callback
+																							Common::applySubstitutions(paymentReceivedCallback, {
+																							
+																								// ID
+																								{"__id__", to_string(paymentId)},
+																								
+																								// Price
+																								{"__price__", Common::getNumberInNumberBase(slate.getAmount(), Consensus::NUMBER_BASE)},
+																								
+																								// Sender payment proof address
+																								{"__sender_payment_proof_address__", senderPaymentProofAddress},
+																								
+																								// Kernel commitment
+																								{"__kernel_commitment__", Common::toHexString(excess, sizeof(excess))},
+																								
+																								// Recipient payment proof signature
+																								{"__recipient_payment_proof_signature__", Common::toHexString(recipientPaymentProofSignature, sizeof(recipientPaymentProofSignature))}
+																							});
 																					
 																							// Check if sending HTTP request to the payment's received callback failed
-																							const string &paymentReceivedCallback = get<3>(paymentInfo).value();
 																							if(!Common::sendHttpRequest(paymentReceivedCallback.c_str())) {
 																							
 																								// Throw exception
@@ -1516,9 +1540,6 @@ void PublicServer::handleGenericRequest(evhttp_request *request) {
 																					// Check if an error didn't occur
 																					if(!errorOccurred) {
 																				
-																						// Get payment ID
-																						const uint64_t &paymentId = get<1>(paymentInfo);
-																						
 																						// Check if setting that payment is received failed
 																						if(!payments.setPaymentReceived(paymentId, slate.getAmount(), senderPaymentProofAddress.c_str(), excess, slate.getParticipants().front().getPublicBlindExcess(), partialSignature, publicNonceSum, kernelData.data(), kernelData.size())) {
 																						
