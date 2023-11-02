@@ -919,7 +919,7 @@ void PrivateServer::handleCreatePaymentRequest(evhttp_request *request) {
 	const string paymentProofAddress = wallet.getTorPaymentProofAddress(paymentProofIndex);
 	
 	// Check if adding payment info to buffer failed
-	if(evbuffer_add_printf(buffer.get(), "{\"payment_id\":\"%" PRIu64 "\",\"url\":\"%s\",\"payment_proof_address\":\"%s\"}", id, url, paymentProofAddress.c_str()) == -1) {
+	if(evbuffer_add_printf(buffer.get(), "{\"payment_id\":\"%" PRIu64 "\",\"url\":\"%s\",\"recipient_payment_proof_address\":\"%s\"}", id, url, paymentProofAddress.c_str()) == -1) {
 	
 		// Remove request's response's content type header
 		evhttp_remove_header(evhttp_request_get_output_headers(request), "Content-Type");
@@ -1049,7 +1049,7 @@ void PrivateServer::handleGetPaymentInfoRequest(evhttp_request *request) {
 	if(get<6>(paymentInfo).has_value()) {
 	
 		// Check if adding payment info to buffer failed
-		if(evbuffer_add_printf(buffer.get(), "{\"url\":\"%s\",\"price\":%s,\"required_confirmations\":%" PRIu64 ",\"received\":%s,\"confirmations\":%" PRIu64 ",\"time_remaining\":%" PRIu64 ",\"status\":\"%s\",\"payment_proof_address\":\"%s\"}", get<1>(paymentInfo).c_str(), priceString.c_str(), get<3>(paymentInfo), get<4>(paymentInfo) ? "true" : "false", get<5>(paymentInfo), get<6>(paymentInfo).value(), get<7>(paymentInfo).c_str(), paymentProofAddress.c_str()) == -1) {
+		if(evbuffer_add_printf(buffer.get(), "{\"url\":\"%s\",\"price\":%s,\"required_confirmations\":%" PRIu64 ",\"received\":%s,\"confirmations\":%" PRIu64 ",\"time_remaining\":%" PRIu64 ",\"status\":\"%s\",\"recipient_payment_proof_address\":\"%s\"}", get<1>(paymentInfo).c_str(), priceString.c_str(), get<3>(paymentInfo), get<4>(paymentInfo) ? "true" : "false", get<5>(paymentInfo), get<6>(paymentInfo).value(), get<7>(paymentInfo).c_str(), paymentProofAddress.c_str()) == -1) {
 		
 			// Reply with internal server error response to request
 			evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
@@ -1063,7 +1063,7 @@ void PrivateServer::handleGetPaymentInfoRequest(evhttp_request *request) {
 	else {
 	
 		// Check if adding payment info to buffer failed
-		if(evbuffer_add_printf(buffer.get(), "{\"url\":\"%s\",\"price\":%s,\"required_confirmations\":%" PRIu64 ",\"received\":%s,\"confirmations\":%" PRIu64 ",\"time_remaining\":null,\"status\":\"%s\",\"payment_proof_address\":\"%s\"}", get<1>(paymentInfo).c_str(), priceString.c_str(), get<3>(paymentInfo), get<4>(paymentInfo) ? "true" : "false", get<5>(paymentInfo), get<7>(paymentInfo).c_str(), paymentProofAddress.c_str()) == -1) {
+		if(evbuffer_add_printf(buffer.get(), "{\"url\":\"%s\",\"price\":%s,\"required_confirmations\":%" PRIu64 ",\"received\":%s,\"confirmations\":%" PRIu64 ",\"time_remaining\":null,\"status\":\"%s\",\"recipient_payment_proof_address\":\"%s\"}", get<1>(paymentInfo).c_str(), priceString.c_str(), get<3>(paymentInfo), get<4>(paymentInfo) ? "true" : "false", get<5>(paymentInfo), get<7>(paymentInfo).c_str(), paymentProofAddress.c_str()) == -1) {
 		
 			// Reply with internal server error response to request
 			evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);

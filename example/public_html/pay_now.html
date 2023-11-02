@@ -163,7 +163,7 @@
 		}
 		
 		// Check if payment info's URL, price, or payment proof address is invalid
-		if(is_array($paymentInfo) === FALSE || array_key_exists("url", $paymentInfo) === FALSE || is_string($paymentInfo["url"]) === FALSE || $paymentInfo["url"] === "" || array_key_exists("price", $paymentInfo) === FALSE || ($paymentInfo["price"] !== NULL && is_string($paymentInfo["price"]) === FALSE) || ($paymentInfo["price"] !== NULL && preg_match('/^(?:0(?:\.\d+)?|[1-9]\d*(?:\.\d+)?)$/u', $paymentInfo["price"]) !== 1) || array_key_exists("payment_proof_address", $paymentInfo) === FALSE || is_string($paymentInfo["payment_proof_address"]) === FALSE || $paymentInfo["payment_proof_address"] === "") {
+		if(is_array($paymentInfo) === FALSE || array_key_exists("url", $paymentInfo) === FALSE || is_string($paymentInfo["url"]) === FALSE || $paymentInfo["url"] === "" || array_key_exists("price", $paymentInfo) === FALSE || ($paymentInfo["price"] !== NULL && is_string($paymentInfo["price"]) === FALSE) || ($paymentInfo["price"] !== NULL && preg_match('/^(?:0(?:\.\d+)?|[1-9]\d*(?:\.\d+)?)$/u', $paymentInfo["price"]) !== 1) || array_key_exists("recipient_payment_proof_address", $paymentInfo) === FALSE || is_string($paymentInfo["recipient_payment_proof_address"]) === FALSE || $paymentInfo["recipient_payment_proof_address"] === "") {
 		
 			// Return internal server error response and exit
 			http_response_code(500);
@@ -254,7 +254,7 @@
 <body>
 	<h2>Payment Information</h2>
 	<p>Send <?= ($paymentInfo["price"] !== NULL) ? preg_replace('/`/u', "&#x60;", htmlspecialchars($paymentInfo["price"], ENT_QUOTES)) : "some"; ?> MWC<?= ($paymentInfo["price"] !== NULL) ? " (≈$" . sprintf("%.2f", $priceInUsdt) . ")" : ""; ?> to <a target="_blank" href="web+mwc<?= preg_replace('/`/u', "&#x60;", htmlspecialchars($url, ENT_QUOTES)); ?>"><?= preg_replace('/`/u', "&#x60;", htmlspecialchars($url, ENT_QUOTES)); ?></a> to purchase the item(s)</p>
-	<p>Recipient payment proof address: <?= preg_replace('/`/u', "&#x60;", htmlspecialchars($paymentInfo["payment_proof_address"], ENT_QUOTES)); ?></p>
+	<p>Recipient payment proof address: <?= preg_replace('/`/u', "&#x60;", htmlspecialchars($paymentInfo["recipient_payment_proof_address"], ENT_QUOTES)); ?></p>
 	<hr>
 	<iframe frameborder="0" src="./payment_status.html?<?= http_build_query([
 		
