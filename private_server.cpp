@@ -848,6 +848,43 @@ void PrivateServer::handleCreatePaymentRequest(evhttp_request *request) {
 		receivedCallback = Payments::NO_RECEIVED_CALLBACK;
 	}
 	
+	// Check if confirmed callback parameter is provided
+	const char *confirmedCallback = evhttp_find_header(&queryValues, "confirmed_callback");
+	if(confirmedCallback) {
+	
+		// Check if confirmed callback parameter isn't too long
+		if(strlen(confirmedCallback) <= Payments::MAXIMUM_CONFIRMED_CALLBACK_SIZE) {
+	
+			// Check if confirmed callback is invalid
+			const unique_ptr<evhttp_uri, decltype(&evhttp_uri_free)> confirmedCallbackUri(evhttp_uri_parse(confirmedCallback), evhttp_uri_free);
+			if(!confirmedCallbackUri || (strncasecmp(confirmedCallback, "http://", sizeof("http://") - sizeof('\0')) && strncasecmp(confirmedCallback, "https://", sizeof("https://") - sizeof('\0'))) || !evhttp_uri_get_scheme(confirmedCallbackUri.get()) || !evhttp_uri_get_host(confirmedCallbackUri.get()) || evhttp_uri_get_unixsocket(confirmedCallbackUri.get()) || evhttp_uri_get_fragment(confirmedCallbackUri.get()) || (strcasecmp(evhttp_uri_get_scheme(confirmedCallbackUri.get()), "http") && strcasecmp(evhttp_uri_get_scheme(confirmedCallbackUri.get()), "https")) || !*evhttp_uri_get_host(confirmedCallbackUri.get()) || !evhttp_uri_get_port(confirmedCallbackUri.get())) {
+			
+				// Reply with bad request response to request
+				evhttp_send_reply(request, HTTP_BADREQUEST, nullptr, nullptr);
+				
+				// Return
+				return;
+			}
+		}
+		
+		// Otherwise
+		else {
+		
+			// Reply with bad request response to request
+			evhttp_send_reply(request, HTTP_BADREQUEST, nullptr, nullptr);
+			
+			// Return
+			return;
+		}
+	}
+	
+	// Otherwise
+	else {
+	
+		// Set confirmed callback to no confirmed callback
+		confirmedCallback = Payments::NO_CONFIRMED_CALLBACK;
+	}
+	
 	// Check if creating random ID failed
 	uint64_t id;
 	if(RAND_bytes_ex(nullptr, reinterpret_cast<uint8_t *>(&id), sizeof(id), RAND_DRBG_STRENGTH) != 1) {
@@ -902,7 +939,7 @@ void PrivateServer::handleCreatePaymentRequest(evhttp_request *request) {
 	}
 	
 	// Check if creating payment failed
-	const uint64_t paymentProofIndex = payments.createPayment(id, url, price, requiredConfirmations, timeout, completedCallback, receivedCallback);
+	const uint64_t paymentProofIndex = payments.createPayment(id, url, price, requiredConfirmations, timeout, completedCallback, receivedCallback, confirmedCallback);
 	if(!paymentProofIndex) {
 	
 		// Remove request's response's content type header

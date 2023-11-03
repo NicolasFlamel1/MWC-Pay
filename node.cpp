@@ -1151,6 +1151,9 @@ bool Node::transactionHashSetOccurred(const MwcValidationNode::MerkleMountainRan
 	// Check if started
 	if(started.load()) {
 	
+		// Run pending confirmed payment callbacks
+		payments.runPendingConfirmedPaymentCallbacks();
+		
 		// Run unsuccessful completed payment callbacks
 		payments.runUnsuccessfulCompletedPaymentCallbacks();
 	}
@@ -1343,6 +1346,9 @@ bool Node::blockOccurred(const MwcValidationNode::Header &header, const MwcValid
 	// Check if started
 	if(started.load()) {
 	
+		// Run pending confirmed payment callbacks
+		payments.runPendingConfirmedPaymentCallbacks();
+		
 		// Run unsuccessful completed payment callbacks
 		payments.runUnsuccessfulCompletedPaymentCallbacks();
 	}

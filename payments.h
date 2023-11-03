@@ -46,14 +46,20 @@ class Payments final {
 		// Maximum completed callback size
 		static const size_t MAXIMUM_COMPLETED_CALLBACK_SIZE;
 		
-		// Maximum Received callback size
+		// Maximum received callback size
 		static const size_t MAXIMUM_RECEIVED_CALLBACK_SIZE;
 		
 		// No received callback
 		static const char *NO_RECEIVED_CALLBACK;
 		
+		// Maximum confirmed callback size
+		static const size_t MAXIMUM_CONFIRMED_CALLBACK_SIZE;
+		
+		// No confirmed callback
+		static const char *NO_CONFIRMED_CALLBACK;
+		
 		// Create payment
-		uint64_t createPayment(const uint64_t id, const char *url, const uint64_t price, const uint32_t requiredConfirmations, const uint32_t timeout, const char *completedCallback, const char *receivedCallback);
+		uint64_t createPayment(const uint64_t id, const char *url, const uint64_t price, const uint32_t requiredConfirmations, const uint32_t timeout, const char *completedCallback, const char *receivedCallback, const char *confirmedCallback);
 		
 		// Get payment info
 		tuple<uint64_t, string, optional<uint64_t>, uint64_t, bool, uint64_t, optional<uint64_t>, string> getPaymentInfo(const uint64_t id);
@@ -100,6 +106,9 @@ class Payments final {
 		// Run unsuccessful completed payment callbacks
 		void runUnsuccessfulCompletedPaymentCallbacks();
 		
+		// Run pending confirmed payment callbacks
+		void runPendingConfirmedPaymentCallbacks();
+		
 	// Private
 	private:
 	
@@ -108,6 +117,12 @@ class Payments final {
 		
 		// Set payment successful completed callback
 		bool setPaymentSuccessfulCompletedCallback(const uint64_t id);
+		
+		// Get pending confirmed callback payments
+		list<tuple<uint64_t, uint64_t, string>> getPendingConfirmedCallbackPayments();
+		
+		// Set payment acknowledged confirmed callback
+		bool setPaymentAcknowledgedConfirmedCallback(const uint64_t id);
 		
 		// Database connection
 		sqlite3 *databaseConnection;
@@ -142,6 +157,9 @@ class Payments final {
 		// Get unsuccessful completed callback payments statement
 		sqlite3_stmt *getUnsuccessfulCompletedCallbackPaymentsStatement;
 		
+		// Get pending confirmed callback payments statement
+		sqlite3_stmt *getPendingConfirmedCallbackPaymentsStatement;
+		
 		// Set payment received statement
 		sqlite3_stmt *setPaymentReceivedStatement;
 		
@@ -153,6 +171,9 @@ class Payments final {
 		
 		// Set payment successful completed callback statement
 		sqlite3_stmt *setPaymentSuccessfulCompletedCallbackStatement;
+		
+		// Set payment acknowledged confirmed callback statement
+		sqlite3_stmt *setPaymentAcknowledgedConfirmedCallbackStatement;
 		
 		// Begin transaction statement
 		sqlite3_stmt *beginTransactionStatement;

@@ -33,6 +33,12 @@ const size_t Payments::MAXIMUM_RECEIVED_CALLBACK_SIZE = Payments::MAXIMUM_COMPLE
 // No received callback
 const char *Payments::NO_RECEIVED_CALLBACK = nullptr;
 
+// Maximum confirmed callback size
+const size_t Payments::MAXIMUM_CONFIRMED_CALLBACK_SIZE = Payments::MAXIMUM_COMPLETED_CALLBACK_SIZE;
+
+// No confirmed callback
+const char *Payments::NO_CONFIRMED_CALLBACK = nullptr;
+
 
 // Supporting function implementation
 
@@ -91,20 +97,26 @@ Payments::Payments(sqlite3 *databaseConnection) :
 		// Confirmed height (Height that the payment was confirmed on-chain)
 		"\"Confirmed Height\" INTEGER NULL DEFAULT(NULL) CHECK((\"Confirmed Height\" IS NULL AND \"Confirmations\" == 0) OR (\"Confirmed Height\" IS NOT NULL AND \"Confirmed Height\" >= 0 AND \"Confirmations\" != 0)),"
 		
-		// Sender public blind excess
+		// Sender public blind excess (Sender public blind excess of the payment)
 		"\"Sender Public Blind Excess\" BLOB NULL DEFAULT(NULL) CHECK((\"Sender Public Blind Excess\" IS NULL AND \"Received\" IS NULL) OR (\"Sender Public Blind Excess\" IS NOT NULL AND LENGTH(\"Sender Public Blind Excess\") = " + to_string(Crypto::SECP256K1_PUBLIC_KEY_SIZE) + " AND \"Received\" IS NOT NULL)),"
 		
-		// Recipient partial signature
+		// Recipient partial signature (Recipient partial signature of the payment)
 		"\"Recipient Partial Signature\" BLOB NULL DEFAULT(NULL) CHECK((\"Recipient Partial Signature\" IS NULL AND \"Received\" IS NULL) OR (\"Recipient Partial Signature\" IS NOT NULL AND LENGTH(\"Recipient Partial Signature\") = " + to_string(Crypto::SECP256K1_SINGLE_SIGNER_SIGNATURE_SIZE) + " AND \"Received\" IS NOT NULL)),"
 		
-		// Public nonce sum
+		// Public nonce sum (Public nonce sum of the payment)
 		"\"Public Nonce Sum\" BLOB NULL DEFAULT(NULL) CHECK((\"Public Nonce Sum\" IS NULL AND \"Received\" IS NULL) OR (\"Public Nonce Sum\" IS NOT NULL AND LENGTH(\"Public Nonce Sum\") = " + to_string(Crypto::SECP256K1_PUBLIC_KEY_SIZE) + " AND \"Received\" IS NOT NULL)),"
 		
-		// Kernel data
+		// Kernel data (Kernel data of the payment)
 		"\"Kernel Data\" BLOB NULL DEFAULT(NULL) CHECK((\"Kernel Data\" IS NULL AND \"Received\" IS NULL) OR (\"Kernel Data\" IS NOT NULL AND LENGTH(\"Kernel Data\") != 0 AND \"Received\" IS NOT NULL)),"
 		
 		// Received callback (Request to perform when payment is received)
-		"\"Received Callback\" TEXT NULL DEFAULT(NULL) CHECK(\"Received Callback\" IS NULL OR \"Received Callback\" LIKE 'http://%' OR \"Received Callback\" LIKE 'https://%')"
+		"\"Received Callback\" TEXT NULL DEFAULT(NULL) CHECK(\"Received Callback\" IS NULL OR \"Received Callback\" LIKE 'http://%' OR \"Received Callback\" LIKE 'https://%'),"
+		
+		// Confirmed callback (Request to perform when the payments number of confirmations changes and it's not completed)
+		"\"Confirmed Callback\" TEXT NULL DEFAULT(NULL) CHECK(\"Confirmed Callback\" IS NULL OR \"Confirmed Callback\" LIKE 'http://%' OR \"Confirmed Callback\" LIKE 'https://%'),"
+		
+		// Confirmations changed (If the payment's number of confirmations changed)
+		"\"Confirmations Changed\" INTEGER NOT NULL DEFAULT(FALSE) CHECK(\"Confirmations Changed\" = FALSE OR (\"Confirmations Changed\" = TRUE AND \"Received\" IS NOT NULL AND \"Completed\" IS NULL))"
 		
 	") STRICT;").c_str(), nullptr, nullptr, nullptr) != SQLITE_OK) {
 	
@@ -116,7 +128,7 @@ Payments::Payments(sqlite3 *databaseConnection) :
 	bool receivedCallbackColumnExists;
 	if(sqlite3_exec(databaseConnection, "SELECT COUNT() > 0 FROM pragma_table_info(\"Payments\") WHERE \"name\"='Received Callback';", [](void *argument, int numberOfRows, char **rows, char **columnNames) -> int {
 	
-		// Get receievd callback exists  from argument
+		// Get received callback column exists from argument
 		bool *receivedCallbackColumnExists = reinterpret_cast<bool *>(argument);
 		
 		// Set received callback column exists
@@ -139,6 +151,66 @@ Payments::Payments(sqlite3 *databaseConnection) :
 		
 			// Throw exception
 			throw runtime_error("Adding received callback column to payments table in the database failed");
+		}
+	}
+	
+	// Check if getting if confirmed callback column exists in the payments table in the database failed
+	bool confirmedCallbackColumnExists;
+	if(sqlite3_exec(databaseConnection, "SELECT COUNT() > 0 FROM pragma_table_info(\"Payments\") WHERE \"name\"='Confirmed Callback';", [](void *argument, int numberOfRows, char **rows, char **columnNames) -> int {
+	
+		// Get confirmed callback column exists from argument
+		bool *confirmedCallbackColumnExists = reinterpret_cast<bool *>(argument);
+		
+		// Set confirmed callback column exists
+		*confirmedCallbackColumnExists = numberOfRows && !strcmp(rows[0], "1");
+		
+		// Return success
+		return 0;
+		
+	}, &confirmedCallbackColumnExists, nullptr) != SQLITE_OK) {
+	
+		// Throw exception
+		throw runtime_error("Getting if confirmed callback column exists in the payments table in the database failed");
+	}
+	
+	// Check if confirmed callback column doesn't exist
+	if(!confirmedCallbackColumnExists) {
+	
+		// Check if adding confirmed callback column to payments table in the database failed
+		if(sqlite3_exec(databaseConnection, "ALTER TABLE \"Payments\" ADD COLUMN \"Confirmed Callback\" TEXT NULL DEFAULT(NULL) CHECK(\"Confirmed Callback\" IS NULL OR \"Confirmed Callback\" LIKE 'http://%' OR \"Confirmed Callback\" LIKE 'https://%');", nullptr, nullptr, nullptr) != SQLITE_OK) {
+		
+			// Throw exception
+			throw runtime_error("Adding confirmed callback column to payments table in the database failed");
+		}
+	}
+	
+	// Check if getting if confirmations changed column exists in the payments table in the database failed
+	bool confirmationsChangedColumnExists;
+	if(sqlite3_exec(databaseConnection, "SELECT COUNT() > 0 FROM pragma_table_info(\"Payments\") WHERE \"name\"='Confirmations Changed';", [](void *argument, int numberOfRows, char **rows, char **columnNames) -> int {
+	
+		// Get confirmations changed column exists from argument
+		bool *confirmationsChangedColumnExists = reinterpret_cast<bool *>(argument);
+		
+		// Set confirmations changed column exists
+		*confirmationsChangedColumnExists = numberOfRows && !strcmp(rows[0], "1");
+		
+		// Return success
+		return 0;
+		
+	}, &confirmationsChangedColumnExists, nullptr) != SQLITE_OK) {
+	
+		// Throw exception
+		throw runtime_error("Getting if confirmations changed column exists in the payments table in the database failed");
+	}
+	
+	// Check if confirmations changed column doesn't exist
+	if(!confirmationsChangedColumnExists) {
+	
+		// Check if adding confirmations changed column to payments table in the database failed
+		if(sqlite3_exec(databaseConnection, "ALTER TABLE \"Payments\" ADD COLUMN \"Confirmations Changed\" INTEGER NOT NULL DEFAULT(FALSE) CHECK(\"Confirmations Changed\" = FALSE OR (\"Confirmations Changed\" = TRUE AND \"Received\" IS NOT NULL AND \"Completed\" IS NULL));", nullptr, nullptr, nullptr) != SQLITE_OK) {
+		
+			// Throw exception
+			throw runtime_error("Adding cconfirmations changed column to payments table in the database failed");
 		}
 	}
 	
@@ -219,6 +291,11 @@ Payments::Payments(sqlite3 *databaseConnection) :
 		"CREATE TRIGGER IF NOT EXISTS \"Payments Keep Received Callback\" BEFORE UPDATE OF \"Received Callback\" ON \"Payments\" BEGIN "
 			"SELECT RAISE(ABORT, 'received callback can''t change');"
 		"END;"
+		
+		// Keep confirmed callback
+		"CREATE TRIGGER IF NOT EXISTS \"Payments Keep Confirmed Callback\" BEFORE UPDATE OF \"Confirmed Callback\" ON \"Payments\" BEGIN "
+			"SELECT RAISE(ABORT, 'confirmed callback can''t change');"
+		"END;"
 	
 	"", nullptr, nullptr, nullptr) != SQLITE_OK) {
 	
@@ -240,6 +317,9 @@ Payments::Payments(sqlite3 *databaseConnection) :
 		
 		// Unsuccessful completed callback index
 		"CREATE INDEX IF NOT EXISTS \"Payments Unsuccessful Completed Callback Index\" ON \"Payments\" (\"Completed\", \"Completed Callback Successful\") WHERE \"Completed\" IS NOT NULL AND \"Completed Callback Successful\" = FALSE;"
+		
+		// Pending confirmed callback index
+		"CREATE INDEX IF NOT EXISTS \"Payments Pending Confirmed Callback Index\" ON \"Payments\" (\"Confirmed Callback\", \"Confirmations Changed\") WHERE \"Confirmed Callback\" IS NOT NULL AND \"Confirmations Changed\" = TRUE;"
 	
 	"", nullptr, nullptr, nullptr) != SQLITE_OK) {
 	
@@ -248,7 +328,7 @@ Payments::Payments(sqlite3 *databaseConnection) :
 	}
 	
 	// Check if preparing create payment statement failed
-	if(sqlite3_prepare_v3(databaseConnection, "INSERT INTO \"Payments\" (\"ID\", \"URL\", \"Price\", \"Required Confirmations\", \"Completed Callback\", \"Received Callback\") VALUES (?, ?, ?, ?, ?, ?);", -1, SQLITE_PREPARE_PERSISTENT, &createPaymentStatement, nullptr) != SQLITE_OK) {
+	if(sqlite3_prepare_v3(databaseConnection, "INSERT INTO \"Payments\" (\"ID\", \"URL\", \"Price\", \"Required Confirmations\", \"Completed Callback\", \"Received Callback\", \"Confirmed Callback\") VALUES (?, ?, ?, ?, ?, ?, ?);", -1, SQLITE_PREPARE_PERSISTENT, &createPaymentStatement, nullptr) != SQLITE_OK) {
 	
 		// Throw exception
 		throw runtime_error("Preparing create payment statement failed");
@@ -258,7 +338,7 @@ Payments::Payments(sqlite3 *databaseConnection) :
 	unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> createPaymentStatementUniquePointer(createPaymentStatement, sqlite3_finalize);
 	
 	// Check if preparing create payment with expiration statement failed
-	if(sqlite3_prepare_v3(databaseConnection, "INSERT INTO \"Payments\" (\"ID\", \"URL\", \"Price\", \"Required Confirmations\", \"Expires\", \"Completed Callback\", \"Received Callback\") VALUES (?, ?, ?, ?, UNIXEPOCH('now') + ?, ?, ?);", -1, SQLITE_PREPARE_PERSISTENT, &createPaymentWithExpirationStatement, nullptr) != SQLITE_OK) {
+	if(sqlite3_prepare_v3(databaseConnection, "INSERT INTO \"Payments\" (\"ID\", \"URL\", \"Price\", \"Required Confirmations\", \"Expires\", \"Completed Callback\", \"Received Callback\", \"Confirmed Callback\") VALUES (?, ?, ?, ?, UNIXEPOCH('now') + ?, ?, ?, ?);", -1, SQLITE_PREPARE_PERSISTENT, &createPaymentWithExpirationStatement, nullptr) != SQLITE_OK) {
 	
 		// Throw exception
 		throw runtime_error("Preparing create payment with expiration statement failed");
@@ -288,7 +368,7 @@ Payments::Payments(sqlite3 *databaseConnection) :
 	unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> getReceivingPaymentForUrlStatementUniquePointer(getReceivingPaymentForUrlStatement, sqlite3_finalize);
 	
 	// Check if preparing get completed payments statement failed
-	if(sqlite3_prepare_v3(databaseConnection, "SELECT \"Unique Number\", \"ID\", \"URL\", \"Created\", \"Completed\", \"Price\", \"Required Confirmations\", \"Received\", \"Completed Callback\", \"Completed Callback Successful\", \"Sender Payment Proof Address\", \"Kernel Commitment\", \"Confirmed Height\", \"Received Callback\" FROM \"Payments\" WHERE \"Completed\" IS NOT NULL ORDER BY \"Completed\" ASC;", -1, 0, &getCompletedPaymentsStatement, nullptr) != SQLITE_OK) {
+	if(sqlite3_prepare_v3(databaseConnection, "SELECT \"Unique Number\", \"ID\", \"URL\", \"Created\", \"Completed\", \"Price\", \"Required Confirmations\", \"Received\", \"Completed Callback\", \"Completed Callback Successful\", \"Sender Payment Proof Address\", \"Kernel Commitment\", \"Confirmed Height\", \"Received Callback\", \"Confirmed Callback\" FROM \"Payments\" WHERE \"Completed\" IS NOT NULL ORDER BY \"Completed\" ASC;", -1, 0, &getCompletedPaymentsStatement, nullptr) != SQLITE_OK) {
 	
 		// Throw exception
 		throw runtime_error("Preparing get completed payments statement failed");
@@ -298,7 +378,7 @@ Payments::Payments(sqlite3 *databaseConnection) :
 	unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> getCompletedPaymentsStatementUniquePointer(getCompletedPaymentsStatement, sqlite3_finalize);
 	
 	// Check if preparing get payment statement failed
-	if(sqlite3_prepare_v3(databaseConnection, "SELECT \"Unique Number\", \"URL\", \"Created\", \"Completed\", \"Price\", \"Required Confirmations\", \"Received\", \"Completed Callback\", \"Completed Callback Successful\", \"Sender Payment Proof Address\", \"Kernel Commitment\", \"Confirmed Height\", IIF(\"Received\" IS NULL AND \"Expires\" IS NOT NULL AND UNIXEPOCH('now') >= \"Expires\", 'Expired', IIF(\"Received\" IS NULL, 'Not received', IIF(\"Confirmations\" = 0, 'Received', IIF(\"Completed\" IS NULL, 'Confirmed', 'Completed')))) AS \"Status\", \"Received Callback\" FROM \"Payments\" WHERE \"ID\" = ?;", -1, 0, &getPaymentStatement, nullptr) != SQLITE_OK) {
+	if(sqlite3_prepare_v3(databaseConnection, "SELECT \"Unique Number\", \"URL\", \"Created\", \"Completed\", \"Price\", \"Required Confirmations\", \"Received\", \"Completed Callback\", \"Completed Callback Successful\", \"Sender Payment Proof Address\", \"Kernel Commitment\", \"Confirmed Height\", IIF(\"Received\" IS NULL AND \"Expires\" IS NOT NULL AND UNIXEPOCH('now') >= \"Expires\", 'Expired', IIF(\"Received\" IS NULL, 'Not received', IIF(\"Confirmations\" = 0, 'Received', IIF(\"Completed\" IS NULL, 'Confirmed', 'Completed')))) AS \"Status\", \"Received Callback\", \"Confirmed Callback\" FROM \"Payments\" WHERE \"ID\" = ?;", -1, 0, &getPaymentStatement, nullptr) != SQLITE_OK) {
 	
 		// Throw exception
 		throw runtime_error("Preparing get payment statement failed");
@@ -347,6 +427,16 @@ Payments::Payments(sqlite3 *databaseConnection) :
 	// Automatically free get unsuccessful completed callback payments statement
 	unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> getUnsuccessfulCompletedCallbackPaymentsStatementUniquePointer(getUnsuccessfulCompletedCallbackPaymentsStatement, sqlite3_finalize);
 	
+	// Check if preparing get pending confirmed callback payments statement
+	if(sqlite3_prepare_v3(databaseConnection, "SELECT \"ID\", \"Confirmations\", \"Confirmed Callback\" FROM \"Payments\" WHERE \"Confirmed Callback\" IS NOT NULL AND \"Confirmations Changed\" = TRUE;", -1, SQLITE_PREPARE_PERSISTENT, &getPendingConfirmedCallbackPaymentsStatement, nullptr) != SQLITE_OK) {
+	
+		// Throw exception
+		throw runtime_error("Preparing get pending confirmed callback payments statement failed");
+	}
+	
+	// Automatically free get pending confirmed callback payments statement
+	unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> getPendingConfirmedCallbackPaymentsStatementUniquePointer(getPendingConfirmedCallbackPaymentsStatement, sqlite3_finalize);
+	
 	// Check if preparing set payment received statement failed
 	if(sqlite3_prepare_v3(databaseConnection, "UPDATE \"Payments\" SET \"Price\" = ?, \"Received\" = UNIXEPOCH('now'), \"Sender Payment Proof Address\" = ?, \"Kernel Commitment\" = ?, \"Sender Public Blind Excess\" = ?, \"Recipient Partial Signature\" = ?, \"Public Nonce Sum\" = ?, \"Kernel Data\" = ? WHERE \"ID\" = ?;", -1, SQLITE_PREPARE_PERSISTENT, &setPaymentReceivedStatement, nullptr) != SQLITE_OK) {
 	
@@ -358,7 +448,7 @@ Payments::Payments(sqlite3 *databaseConnection) :
 	unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> setPaymentReceivedStatementUniquePointer(setPaymentReceivedStatement, sqlite3_finalize);
 	
 	// Check if preparing reorg incomplete payments statement failed
-	if(sqlite3_prepare_v3(databaseConnection, "UPDATE \"Payments\" SET \"Confirmations\" = 0, \"Confirmed Height\" = NULL WHERE \"Completed\" IS NULL AND \"Confirmed Height\" IS NOT NULL AND \"Confirmed Height\" >= ?;", -1, SQLITE_PREPARE_PERSISTENT, &reorgIncompletePaymentsStatement, nullptr) != SQLITE_OK) {
+	if(sqlite3_prepare_v3(databaseConnection, "UPDATE \"Payments\" SET \"Confirmations\" = 0, \"Confirmed Height\" = NULL, \"Confirmations Changed\" = TRUE WHERE \"Completed\" IS NULL AND \"Confirmed Height\" IS NOT NULL AND \"Confirmed Height\" >= ?;", -1, SQLITE_PREPARE_PERSISTENT, &reorgIncompletePaymentsStatement, nullptr) != SQLITE_OK) {
 	
 		// Throw exception
 		throw runtime_error("Preparing reorg incomplete payments statement failed");
@@ -368,7 +458,7 @@ Payments::Payments(sqlite3 *databaseConnection) :
 	unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> reorgIncompletePaymentsStatementUniquePointer(reorgIncompletePaymentsStatement, sqlite3_finalize);
 	
 	// Check if preparing set payment confirmations statement failed
-	if(sqlite3_prepare_v3(databaseConnection, "UPDATE \"Payments\" SET \"Confirmations\" = MIN(?, \"Required Confirmations\"), \"Completed\" = IIF(?1 >= \"Required Confirmations\", UNIXEPOCH('now'), NULL), \"Confirmed Height\" = IIF(?1 > 0, ?, NULL) WHERE \"ID\" = ?;", -1, SQLITE_PREPARE_PERSISTENT, &setPaymentConfirmationsStatement, nullptr) != SQLITE_OK) {
+	if(sqlite3_prepare_v3(databaseConnection, "UPDATE \"Payments\" SET \"Confirmations\" = MIN(?, \"Required Confirmations\"), \"Completed\" = IIF(?1 >= \"Required Confirmations\", UNIXEPOCH('now'), NULL), \"Confirmed Height\" = IIF(?1 > 0, ?, NULL), \"Confirmations Changed\" = IIF(?1 >= \"Required Confirmations\", FALSE, TRUE) WHERE \"ID\" = ?;", -1, SQLITE_PREPARE_PERSISTENT, &setPaymentConfirmationsStatement, nullptr) != SQLITE_OK) {
 	
 		// Throw exception
 		throw runtime_error("Preparing set payment confirmations statement failed");
@@ -386,6 +476,16 @@ Payments::Payments(sqlite3 *databaseConnection) :
 	
 	// Automatically free set payment successful completed callback statement
 	unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> setPaymentSuccessfulCompletedCallbackStatementUniquePointer(setPaymentSuccessfulCompletedCallbackStatement, sqlite3_finalize);
+	
+	// Check if preparing set payment acknowledged confirmed callback statement failed
+	if(sqlite3_prepare_v3(databaseConnection, "UPDATE \"Payments\" SET \"Confirmations Changed\" = FALSE WHERE \"ID\" = ?;", -1, SQLITE_PREPARE_PERSISTENT, &setPaymentAcknowledgedConfirmedCallbackStatement, nullptr) != SQLITE_OK) {
+	
+		// Throw exception
+		throw runtime_error("Preparing set payment acknowledged confirmed callback statement failed");
+	}
+	
+	// Automatically free set payment acknowledged confirmed callback statement
+	unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> setPaymentAcknowledgedConfirmedCallbackStatementUniquePointer(setPaymentAcknowledgedConfirmedCallbackStatement, sqlite3_finalize);
 	
 	// Check if preparing begin transaction statement failed
 	if(sqlite3_prepare_v3(databaseConnection, "BEGIN;", -1, SQLITE_PREPARE_PERSISTENT, &beginTransactionStatement, nullptr) != SQLITE_OK) {
@@ -447,6 +547,9 @@ Payments::Payments(sqlite3 *databaseConnection) :
 	// Release get unsuccessful completed callback payments statement unique pointer
 	getUnsuccessfulCompletedCallbackPaymentsStatementUniquePointer.release();
 	
+	// Release get pending confirmed callback payments statement unique pointer
+	getPendingConfirmedCallbackPaymentsStatementUniquePointer.release();
+	
 	// Release set payment received statement unique pointer
 	setPaymentReceivedStatementUniquePointer.release();
 	
@@ -458,6 +561,9 @@ Payments::Payments(sqlite3 *databaseConnection) :
 	
 	// Release set payment successful completed callback statement unique pointer
 	setPaymentSuccessfulCompletedCallbackStatementUniquePointer.release();
+	
+	// Release set payment acknowledged confirmed callback statement unique pointer
+	setPaymentAcknowledgedConfirmedCallbackStatementUniquePointer.release();
 	
 	// Release begin transaction statement unique pointer
 	beginTransactionStatementUniquePointer.release();
@@ -562,6 +668,26 @@ Payments::~Payments() {
 		Common::setErrorOccurred();
 	}
 	
+	// Check if freeing get unsuccessful completed callback payments statement failed
+	if(sqlite3_finalize(getUnsuccessfulCompletedCallbackPaymentsStatement) != SQLITE_OK) {
+	
+		// Display message
+		cout << "Freeing get unsuccessful completed callback payments statement failed" << endl;
+		
+		// Set error occurred
+		Common::setErrorOccurred();
+	}
+	
+	// Check if freeing get pending confirmed callback payments statement failed
+	if(sqlite3_finalize(getPendingConfirmedCallbackPaymentsStatement) != SQLITE_OK) {
+	
+		// Display message
+		cout << "Freeing get pending confirmed callback payments statement failed" << endl;
+		
+		// Set error occurred
+		Common::setErrorOccurred();
+	}
+	
 	// Check if freeing set payment received statement failed
 	if(sqlite3_finalize(setPaymentReceivedStatement) != SQLITE_OK) {
 	
@@ -602,6 +728,16 @@ Payments::~Payments() {
 		Common::setErrorOccurred();
 	}
 	
+	// Check if freeing set payment acknowledged confirmed callback statement failed
+	if(sqlite3_finalize(setPaymentAcknowledgedConfirmedCallbackStatement) != SQLITE_OK) {
+	
+		// Display message
+		cout << "Freeing set payment acknowledged confirmed callback statement failed" << endl;
+		
+		// Set error occurred
+		Common::setErrorOccurred();
+	}
+	
 	// Check if freeing begin transaction statement failed
 	if(sqlite3_finalize(beginTransactionStatement) != SQLITE_OK) {
 	
@@ -634,7 +770,7 @@ Payments::~Payments() {
 }
 
 // Create payment
-uint64_t Payments::createPayment(const uint64_t id, const char *url, const uint64_t price, const uint32_t requiredConfirmations, const uint32_t timeout, const char *completedCallback, const char *receivedCallback) {
+uint64_t Payments::createPayment(const uint64_t id, const char *url, const uint64_t price, const uint32_t requiredConfirmations, const uint32_t timeout, const char *completedCallback, const char *receivedCallback, const char *confirmedCallback) {
 
 	// Initialize result
 	uint64_t result;
@@ -656,7 +792,7 @@ uint64_t Payments::createPayment(const uint64_t id, const char *url, const uint6
 			}
 		
 			// Check if binding create payment with expiration statement's values failed
-			if(sqlite3_bind_int64(createPaymentWithExpirationStatement, 1, *reinterpret_cast<const int64_t *>(&id)) != SQLITE_OK || sqlite3_bind_text(createPaymentWithExpirationStatement, 2, url, -1, SQLITE_STATIC) != SQLITE_OK || (price ? sqlite3_bind_int64(createPaymentWithExpirationStatement, 3, *reinterpret_cast<const int64_t *>(&price)) : sqlite3_bind_null(createPaymentWithExpirationStatement, 3)) != SQLITE_OK || sqlite3_bind_int64(createPaymentWithExpirationStatement, 4, requiredConfirmations) != SQLITE_OK || sqlite3_bind_int64(createPaymentWithExpirationStatement, 5, timeout) != SQLITE_OK || sqlite3_bind_text(createPaymentWithExpirationStatement, 6, completedCallback, -1, SQLITE_STATIC) != SQLITE_OK || (receivedCallback ? sqlite3_bind_text(createPaymentWithExpirationStatement, 7, receivedCallback, -1, SQLITE_STATIC) : sqlite3_bind_null(createPaymentWithExpirationStatement, 7)) != SQLITE_OK) {
+			if(sqlite3_bind_int64(createPaymentWithExpirationStatement, 1, *reinterpret_cast<const int64_t *>(&id)) != SQLITE_OK || sqlite3_bind_text(createPaymentWithExpirationStatement, 2, url, -1, SQLITE_STATIC) != SQLITE_OK || (price ? sqlite3_bind_int64(createPaymentWithExpirationStatement, 3, *reinterpret_cast<const int64_t *>(&price)) : sqlite3_bind_null(createPaymentWithExpirationStatement, 3)) != SQLITE_OK || sqlite3_bind_int64(createPaymentWithExpirationStatement, 4, requiredConfirmations) != SQLITE_OK || sqlite3_bind_int64(createPaymentWithExpirationStatement, 5, timeout) != SQLITE_OK || sqlite3_bind_text(createPaymentWithExpirationStatement, 6, completedCallback, -1, SQLITE_STATIC) != SQLITE_OK || (receivedCallback ? sqlite3_bind_text(createPaymentWithExpirationStatement, 7, receivedCallback, -1, SQLITE_STATIC) : sqlite3_bind_null(createPaymentWithExpirationStatement, 7)) != SQLITE_OK || (confirmedCallback ? sqlite3_bind_text(createPaymentWithExpirationStatement, 8, confirmedCallback, -1, SQLITE_STATIC) : sqlite3_bind_null(createPaymentWithExpirationStatement, 8)) != SQLITE_OK) {
 			
 				// Return zero
 				return 0;
@@ -684,7 +820,7 @@ uint64_t Payments::createPayment(const uint64_t id, const char *url, const uint6
 			}
 			
 			// Check if binding create payment statement's values failed
-			if(sqlite3_bind_int64(createPaymentStatement, 1, *reinterpret_cast<const int64_t *>(&id)) != SQLITE_OK || sqlite3_bind_text(createPaymentStatement, 2, url, -1, SQLITE_STATIC) != SQLITE_OK || (price ? sqlite3_bind_int64(createPaymentStatement, 3, *reinterpret_cast<const int64_t *>(&price)) : sqlite3_bind_null(createPaymentStatement, 3)) != SQLITE_OK || sqlite3_bind_int64(createPaymentStatement, 4, requiredConfirmations) != SQLITE_OK || sqlite3_bind_text(createPaymentStatement, 5, completedCallback, -1, SQLITE_STATIC) != SQLITE_OK || (receivedCallback ? sqlite3_bind_text(createPaymentStatement, 6, receivedCallback, -1, SQLITE_STATIC) : sqlite3_bind_null(createPaymentStatement, 6)) != SQLITE_OK) {
+			if(sqlite3_bind_int64(createPaymentStatement, 1, *reinterpret_cast<const int64_t *>(&id)) != SQLITE_OK || sqlite3_bind_text(createPaymentStatement, 2, url, -1, SQLITE_STATIC) != SQLITE_OK || (price ? sqlite3_bind_int64(createPaymentStatement, 3, *reinterpret_cast<const int64_t *>(&price)) : sqlite3_bind_null(createPaymentStatement, 3)) != SQLITE_OK || sqlite3_bind_int64(createPaymentStatement, 4, requiredConfirmations) != SQLITE_OK || sqlite3_bind_text(createPaymentStatement, 5, completedCallback, -1, SQLITE_STATIC) != SQLITE_OK || (receivedCallback ? sqlite3_bind_text(createPaymentStatement, 6, receivedCallback, -1, SQLITE_STATIC) : sqlite3_bind_null(createPaymentStatement, 6)) != SQLITE_OK || (confirmedCallback ? sqlite3_bind_text(createPaymentStatement, 7, confirmedCallback, -1, SQLITE_STATIC) : sqlite3_bind_null(createPaymentStatement, 7)) != SQLITE_OK) {
 			
 				// Return zero
 				return 0;
@@ -974,6 +1110,20 @@ void Payments::displayCompletedPayments(const Wallet &wallet) {
 				cout << "\tReceived callback: " << sqlite3_column_text(getCompletedPaymentsStatement, 13) << endl;
 			}
 			
+			// check if payment doesn't have a confirmed callback
+			if(sqlite3_column_type(getCompletedPaymentsStatement, 14) == SQLITE_NULL) {
+			
+				// Display payment's confirmed callback
+				cout << "\tConfirmed callback: N/A" << endl;
+			}
+			
+			// Otherwise
+			else {
+			
+				// Display payment's confirmed callback
+				cout << "\tConfirmed callback: " << sqlite3_column_text(getCompletedPaymentsStatement, 14) << endl;
+			}
+			
 			// Display payment's completed callback
 			cout << "\tCompleted callback: " << sqlite3_column_text(getCompletedPaymentsStatement, 8) << endl;
 			
@@ -1174,6 +1324,20 @@ void Payments::displayPayment(const uint64_t id, const Wallet &wallet) {
 			
 				// Display payment's received callback
 				cout << "\tReceived callback: " << sqlite3_column_text(getPaymentStatement, 13) << endl;
+			}
+			
+			// check if payment doesn't have a confirmed callback
+			if(sqlite3_column_type(getPaymentStatement, 14) == SQLITE_NULL) {
+			
+				// Display payment's confirmed callback
+				cout << "\tConfirmed callback: N/A" << endl;
+			}
+			
+			// Otherwise
+			else {
+			
+				// Display payment's confirmed callback
+				cout << "\tConfirmed callback: " << sqlite3_column_text(getPaymentStatement, 14) << endl;
 			}
 			
 			// Display payment's completed callback
@@ -1647,6 +1811,57 @@ void Payments::runUnsuccessfulCompletedPaymentCallbacks() {
 	}
 }
 
+// Run pending confirmed payment callbacks
+void Payments::runPendingConfirmedPaymentCallbacks() {
+
+	// Try
+	try {
+
+		// Go through all pending confirmed callback payments
+		for(tuple<uint64_t, uint64_t, string> &paymentInfo : getPendingConfirmedCallbackPayments()) {
+		
+			// Get payment ID
+			const uint64_t &paymentId = get<0>(paymentInfo);
+			
+			// Try
+			try {
+			
+				// Get payment confirmations
+				const uint64_t &paymentConfirmations = get<1>(paymentInfo);
+				
+				// Get payment's confirmed callback
+				string &paymentConfirmedCallback = get<2>(paymentInfo);
+				
+				// Apply substitutions to payment's confirmed callback
+				Common::applySubstitutions(paymentConfirmedCallback, {
+				
+					// ID
+					{"__id__", to_string(paymentId)},
+					
+					// Confirmations
+					{"__confirmations__", to_string(paymentConfirmations)}
+				});
+		
+				// Send HTTP request to the payment's confirmed callback
+				Common::sendHttpRequest(paymentConfirmedCallback.c_str());
+			}
+			
+			// Catch errors
+			catch(...) {
+			
+			}
+			
+			// Set that payment's confirmed callback was acknowledged
+			setPaymentAcknowledgedConfirmedCallback(paymentId);
+		}
+	}
+	
+	// Catch errors
+	catch(...) {
+	
+	}
+}
+
 // Get unsuccessful completed callback payments
 list<tuple<uint64_t, string>> Payments::getUnsuccessfulCompletedCallbackPayments() {
 
@@ -1721,6 +1936,100 @@ bool Payments::setPaymentSuccessfulCompletedCallback(const uint64_t id) {
 		
 			// Reset set payment successful completed callback statement
 			sqlite3_reset(setPaymentSuccessfulCompletedCallbackStatement);
+			
+			// Return false
+			return false;
+		}
+	}
+	
+	// Catch errors
+	catch(...) {
+	
+		// Return false
+		return false;
+	}
+	
+	// Return true
+	return true;
+}
+
+// Get pending confirmed callback payments
+list<tuple<uint64_t, uint64_t, string>> Payments::getPendingConfirmedCallbackPayments() {
+
+	// Lock
+	lock_guard guard(lock);
+	
+	// Check if resetting get pending confirmed callback payments statement failed
+	if(sqlite3_reset(getPendingConfirmedCallbackPaymentsStatement) != SQLITE_OK) {
+	
+		// Throw exception
+		throw runtime_error("Resetting get pending confirmed callback payments statement failed");
+	}
+	
+	// Initialize result
+	list<tuple<uint64_t, uint64_t, string>> result;
+	
+	// Go through all pending confirmed callback payments
+	int sqlResult;
+	while((sqlResult = sqlite3_step(getPendingConfirmedCallbackPaymentsStatement)) != SQLITE_DONE) {
+	
+		// Check if running get pending confirmed callback payments statement failed
+		if(sqlResult != SQLITE_ROW) {
+		
+			// Reset get pending confirmed callback payments statement
+			sqlite3_reset(getPendingConfirmedCallbackPaymentsStatement);
+			
+			// Throw exception
+			throw runtime_error("Running get pending confirmed callback payments statement failed");
+		}
+		
+		// Add payment's info to result
+		const int64_t idStorage = sqlite3_column_int64(getPendingConfirmedCallbackPaymentsStatement, 0);
+		result.emplace_back(
+		
+			// ID
+			*reinterpret_cast<const uint64_t *>(&idStorage),
+			
+			// Confirmations
+			sqlite3_column_int64(getPendingConfirmedCallbackPaymentsStatement, 1),
+			
+			// Confirmed callback
+			reinterpret_cast<const char *>(sqlite3_column_text(getPendingConfirmedCallbackPaymentsStatement, 2))
+		);
+	}
+	
+	// Return result
+	return result;
+}
+
+// Set payment acknowledged confirmed callback
+bool Payments::setPaymentAcknowledgedConfirmedCallback(const uint64_t id) {
+
+	// Try
+	try {
+	
+		// Lock
+		lock_guard guard(lock);
+		
+		// Check if resetting and clearing set payment acknowledged confirmed callback statement failed
+		if(sqlite3_reset(setPaymentAcknowledgedConfirmedCallbackStatement) != SQLITE_OK || sqlite3_clear_bindings(setPaymentAcknowledgedConfirmedCallbackStatement) != SQLITE_OK) {
+		
+			// Return false
+			return false;
+		}
+		
+		// Check if binding set payment acknowledged confirmed callback statement's values failed
+		if(sqlite3_bind_int64(setPaymentAcknowledgedConfirmedCallbackStatement, 1, *reinterpret_cast<const int64_t *>(&id)) != SQLITE_OK) {
+		
+			// Return false
+			return false;
+		}
+		
+		// Check if running set payment acknowledged confirmed callback statement failed
+		if(sqlite3_step(setPaymentAcknowledgedConfirmedCallbackStatement) != SQLITE_DONE) {
+		
+			// Reset set payment acknowledged confirmed callback statement
+			sqlite3_reset(setPaymentAcknowledgedConfirmedCallbackStatement);
 			
 			// Return false
 			return false;
