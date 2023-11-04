@@ -13,6 +13,7 @@
 #include <vector>
 #include "./common.h"
 #include "event2/event.h"
+#include "./expired_monitor.h"
 #include "./node.h"
 #include "./payments.h"
 #include "./price.h"
@@ -542,6 +543,9 @@ int main(int argc, char *argv[]) {
 				return EXIT_FAILURE;
 			}
 		}
+		
+		// Create expired monitor
+		static const ExpiredMonitor expiredMonitor(payments);
 		
 		// Create Tor proxy
 		static const TorProxy torProxy(providedOptions);

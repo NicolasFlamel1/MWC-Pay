@@ -58,8 +58,14 @@ class Payments final {
 		// No confirmed callback
 		static const char *NO_CONFIRMED_CALLBACK;
 		
+		// Maximum expired callback size
+		static const size_t MAXIMUM_EXPIRED_CALLBACK_SIZE;
+		
+		// No expired callback
+		static const char *NO_EXPIRED_CALLBACK;
+		
 		// Create payment
-		uint64_t createPayment(const uint64_t id, const char *url, const uint64_t price, const uint32_t requiredConfirmations, const uint32_t timeout, const char *completedCallback, const char *receivedCallback, const char *confirmedCallback);
+		uint64_t createPayment(const uint64_t id, const char *url, const uint64_t price, const uint32_t requiredConfirmations, const uint32_t timeout, const char *completedCallback, const char *receivedCallback, const char *confirmedCallback, const char *expiredCallback);
 		
 		// Get payment info
 		tuple<uint64_t, string, optional<uint64_t>, uint64_t, bool, uint64_t, optional<uint64_t>, string> getPaymentInfo(const uint64_t id);
@@ -109,6 +115,9 @@ class Payments final {
 		// Run pending confirmed payment callbacks
 		void runPendingConfirmedPaymentCallbacks();
 		
+		// Run unsuccessful expired payment callbacks
+		void runUnsuccessfulExpiredPaymentCallbacks();
+		
 	// Private
 	private:
 	
@@ -123,6 +132,12 @@ class Payments final {
 		
 		// Set payment acknowledged confirmed callback
 		bool setPaymentAcknowledgedConfirmedCallback(const uint64_t id);
+		
+		// Get unsuccessful expired callback payments
+		list<tuple<uint64_t, string>> getUnsuccessfulExpiredCallbackPayments();
+		
+		// Set payment successful expired callback
+		bool setPaymentSuccessfulExpiredCallback(const uint64_t id);
 		
 		// Database connection
 		sqlite3 *databaseConnection;
@@ -160,6 +175,9 @@ class Payments final {
 		// Get pending confirmed callback payments statement
 		sqlite3_stmt *getPendingConfirmedCallbackPaymentsStatement;
 		
+		// Get unsuccessful expired callback payments statement
+		sqlite3_stmt *getUnsuccessfulExpiredCallbackPaymentsStatement;
+		
 		// Set payment received statement
 		sqlite3_stmt *setPaymentReceivedStatement;
 		
@@ -174,6 +192,9 @@ class Payments final {
 		
 		// Set payment acknowledged confirmed callback statement
 		sqlite3_stmt *setPaymentAcknowledgedConfirmedCallbackStatement;
+		
+		// Set payment successful expired callback statement
+		sqlite3_stmt *setPaymentSuccessfulExpiredCallbackStatement;
 		
 		// Begin transaction statement
 		sqlite3_stmt *beginTransactionStatement;
