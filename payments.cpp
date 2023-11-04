@@ -518,7 +518,7 @@ Payments::Payments(sqlite3 *databaseConnection) :
 	unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> getConfirmingPaymentsStatementUniquePointer(getConfirmingPaymentsStatement, sqlite3_finalize);
 	
 	// Check if preparing get unsuccessful completed callback payments statement
-	if(sqlite3_prepare_v3(databaseConnection, "SELECT \"ID\", \"Completed Callback\" FROM \"Payments\" WHERE \"Completed\" IS NOT NULL AND \"Completed Callback Successful\" = FALSE;", -1, SQLITE_PREPARE_PERSISTENT, &getUnsuccessfulCompletedCallbackPaymentsStatement, nullptr) != SQLITE_OK) {
+	if(sqlite3_prepare_v3(databaseConnection, "SELECT \"ID\", \"Completed\", \"Received\", \"Completed Callback\" FROM \"Payments\" WHERE \"Completed\" IS NOT NULL AND \"Completed Callback Successful\" = FALSE;", -1, SQLITE_PREPARE_PERSISTENT, &getUnsuccessfulCompletedCallbackPaymentsStatement, nullptr) != SQLITE_OK) {
 	
 		// Throw exception
 		throw runtime_error("Preparing get unsuccessful completed callback payments statement failed");
@@ -1988,22 +1988,34 @@ void Payments::runUnsuccessfulCompletedPaymentCallbacks() {
 	try {
 
 		// Go through all unsuccessful completed callback payments
-		for(tuple<uint64_t, string> &paymentInfo : getUnsuccessfulCompletedCallbackPayments()) {
+		for(tuple<uint64_t, uint64_t, uint64_t, string> &paymentInfo : getUnsuccessfulCompletedCallbackPayments()) {
 		
 			// Try
 			try {
 			
 				// Get payment ID
 				const uint64_t &paymentId = get<0>(paymentInfo);
-			
+				
+				// Get payment completed
+				const uint64_t &paymentCompleted = get<1>(paymentInfo);
+				
+				// Get payment received
+				const uint64_t &paymentReceived = get<2>(paymentInfo);
+				
 				// Get payment's completed callback
-				string &paymentCompletedCallback = get<1>(paymentInfo);
+				string &paymentCompletedCallback = get<3>(paymentInfo);
 				
 				// Apply substitutions to payment's completed callback
 				Common::applySubstitutions(paymentCompletedCallback, {
 				
 					// ID
-					{"__id__", to_string(paymentId)}
+					{"__id__", to_string(paymentId)},
+					
+					// Completed
+					{"__completed__", to_string(paymentCompleted)},
+					
+					// Received
+					{"__received__", to_string(paymentReceived)}
 				});
 		
 				// Check if sending HTTP request to the payment's completed callback was successful
@@ -2125,7 +2137,7 @@ void Payments::runUnsuccessfulExpiredPaymentCallbacks() {
 }
 
 // Get unsuccessful completed callback payments
-list<tuple<uint64_t, string>> Payments::getUnsuccessfulCompletedCallbackPayments() {
+list<tuple<uint64_t, uint64_t, uint64_t, string>> Payments::getUnsuccessfulCompletedCallbackPayments() {
 
 	// Lock
 	lock_guard guard(lock);
@@ -2138,7 +2150,7 @@ list<tuple<uint64_t, string>> Payments::getUnsuccessfulCompletedCallbackPayments
 	}
 	
 	// Initialize result
-	list<tuple<uint64_t, string>> result;
+	list<tuple<uint64_t, uint64_t, uint64_t, string>> result;
 	
 	// Go through all unsuccessful completed callback payments
 	int sqlResult;
@@ -2161,8 +2173,14 @@ list<tuple<uint64_t, string>> Payments::getUnsuccessfulCompletedCallbackPayments
 			// ID
 			*reinterpret_cast<const uint64_t *>(&idStorage),
 			
+			// Completed
+			sqlite3_column_int64(getUnsuccessfulCompletedCallbackPaymentsStatement, 1),
+			
+			// Received
+			sqlite3_column_int64(getUnsuccessfulCompletedCallbackPaymentsStatement, 2),
+			
 			// Completed callback
-			reinterpret_cast<const char *>(sqlite3_column_text(getUnsuccessfulCompletedCallbackPaymentsStatement, 1))
+			reinterpret_cast<const char *>(sqlite3_column_text(getUnsuccessfulCompletedCallbackPaymentsStatement, 3))
 		);
 	}
 	

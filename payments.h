@@ -122,7 +122,7 @@ class Payments final {
 	private:
 	
 		// Get unsuccessful completed callback payments
-		list<tuple<uint64_t, string>> getUnsuccessfulCompletedCallbackPayments();
+		list<tuple<uint64_t, uint64_t, uint64_t, string>> getUnsuccessfulCompletedCallbackPayments();
 		
 		// Set payment successful completed callback
 		bool setPaymentSuccessfulCompletedCallback(const uint64_t id);
