@@ -247,13 +247,28 @@
 						event["target"].click();
 					});
 				}
+				
+				// Otherwise
+				else {
+				
+					// Add protocol to link
+					this.setAttribute("href", "web+mwc" + "<?= preg_replace('/(["\\\\])/u', "\\\\\$1", $url); ?>");
+					
+					// Request animation frame
+					var self = this;
+					setTimeout(function() {
+					
+						// Remove protocol to link
+						self.setAttribute("href", "<?= preg_replace('/(["\\\\])/u', "\\\\\$1", $url); ?>");
+					}, 0);
+				}
 			});
 		});
 	</script>
 </head>
 <body>
 	<h2>Payment Information</h2>
-	<p>Send <?= ($paymentInfo["price"] !== NULL) ? preg_replace('/`/u', "&#x60;", htmlspecialchars($paymentInfo["price"], ENT_QUOTES)) : "some"; ?> MWC<?= ($paymentInfo["price"] !== NULL) ? " (≈$" . sprintf("%.2f", $priceInUsdt) . ")" : ""; ?> to <a target="_blank" href="web+mwc<?= preg_replace('/`/u', "&#x60;", htmlspecialchars($url, ENT_QUOTES)); ?>"><?= preg_replace('/`/u', "&#x60;", htmlspecialchars($url, ENT_QUOTES)); ?></a> to purchase the item(s)</p>
+	<p>Send <?= ($paymentInfo["price"] !== NULL) ? preg_replace('/`/u', "&#x60;", htmlspecialchars($paymentInfo["price"], ENT_QUOTES)) : "some"; ?> MWC<?= ($paymentInfo["price"] !== NULL) ? " (≈$" . sprintf("%.2f", $priceInUsdt) . ")" : ""; ?> to <a target="_blank" href="<?= preg_replace('/`/u', "&#x60;", htmlspecialchars($url, ENT_QUOTES)); ?>"><?= preg_replace('/`/u', "&#x60;", htmlspecialchars($url, ENT_QUOTES)); ?></a> to purchase the item(s)</p>
 	<p>Recipient payment proof address: <?= preg_replace('/`/u', "&#x60;", htmlspecialchars($paymentInfo["recipient_payment_proof_address"], ENT_QUOTES)); ?></p>
 	<hr>
 	<iframe frameborder="0" src="./payment_status.html?<?= http_build_query([
