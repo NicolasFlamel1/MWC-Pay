@@ -158,3 +158,7 @@ The following should be taken into consideration to ensure that one's privacy is
 6. Don't use an address for the private server's `create_payment` API's `confirmed_callback` parameter that requires performing a DNS request to a third-party DNS server to resolve its IP address or requires sending packets through an unencrypted third-party network to connect to it.
 7. Don't use an address for the private server's `create_payment` API's `expired_callback` parameter that requires performing a DNS request to a third-party DNS server to resolve its IP address or requires sending packets through an unencrypted third-party network to connect to it.
 8. If you use a reverse proxy to provided access to the public server API, then set the `-e, --public_address` command line argument to something like `localhost` so that its not listening on a publicly accessible interface.
+
+### Real-World Usage
+The following is a list of real-world software that uses MWC Pay to accept MimbleWimble Coin payments.
+* MWC Place ([https://mwcplace.com](https://mwcplace.com))
