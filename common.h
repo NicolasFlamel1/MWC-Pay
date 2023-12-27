@@ -103,6 +103,9 @@ class Common final {
 		
 		// Apply substitutions
 		static void applySubstitutions(string &text, const unordered_map<string, string> &substitutions);
+		
+		// JSON escape
+		static string jsonEscape(const char *text);
 	
 	// Private
 	private:

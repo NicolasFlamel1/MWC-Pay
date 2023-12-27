@@ -70,6 +70,9 @@ class Payments final {
 		// Get payment info
 		tuple<uint64_t, string, optional<uint64_t>, uint64_t, bool, uint64_t, optional<uint64_t>, string> getPaymentInfo(const uint64_t id);
 		
+		// Get payment price
+		tuple<uint64_t, optional<uint64_t>> getPaymentPrice(const char *url);
+		
 		// Get receiving payment for URL
 		tuple<uint64_t, uint64_t, optional<uint64_t>, optional<string>> getReceivingPaymentForUrl(const char *url);
 		
@@ -150,6 +153,9 @@ class Payments final {
 		
 		// Get payment info statement
 		sqlite3_stmt *getPaymentInfoStatement;
+		
+		// Get payment price statement
+		sqlite3_stmt *getPaymentPriceStatement;
 		
 		// Get receiving payment for URL statement
 		sqlite3_stmt *getReceivingPaymentForUrlStatement;

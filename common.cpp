@@ -490,3 +490,84 @@ void Common::applySubstitutions(string &text, const unordered_map<string, string
 		}
 	}
 }
+
+// JSON escape
+string Common::jsonEscape(const char *text) {
+
+	// Initialize result
+	string result;
+
+	// Go through all characters in the text
+	for(const char *character = text; *character; ++character) {
+	
+		// Check character
+		switch(*character) {
+			
+			// Non-printable ASCII character
+			case '\x00':
+			case '\x01':
+			case '\x02':
+			case '\x03':
+			case '\x04':
+			case '\x05':
+			case '\x06':
+			case '\x07':
+			case '\x08':
+			case '\x09':
+			case '\x0A':
+			case '\x0B':
+			case '\x0C':
+			case '\x0D':
+			case '\x0E':
+			case '\x0F':
+			case '\x10':
+			case '\x11':
+			case '\x12':
+			case '\x13':
+			case '\x14':
+			case '\x15':
+			case '\x16':
+			case '\x17':
+			case '\x18':
+			case '\x19':
+			case '\x1A':
+			case '\x1B':
+			case '\x1C':
+			case '\x1D':
+			case '\x1E':
+			case '\x1F': {
+			
+				// Append encoded character to result
+				stringstream temp;
+				temp << hex << uppercase << setfill('0') << setw(4) << static_cast<uint16_t>(*character);
+				result += "\\u" + temp.str();
+				
+				// Break
+				break;
+			}
+			
+			// Double quote or backslash
+			case '"':
+			case '\\':
+			
+				// Append escaped character to result
+				result.push_back('\\');
+				result.push_back(*character);
+				
+				// Break
+				break;
+			
+			// Default
+			default:
+			
+				// Append character to result
+				result.push_back(*character);
+				
+				// Break
+				break;
+		}
+	}
+	
+	// Return result
+	return result;
+}

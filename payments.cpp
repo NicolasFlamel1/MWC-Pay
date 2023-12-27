@@ -128,7 +128,10 @@ Payments::Payments(sqlite3 *databaseConnection) :
 		"\"Expired Callback\" TEXT NULL DEFAULT(NULL) CHECK(\"Expired Callback\" IS NULL OR ((\"Expired Callback\" LIKE 'http://%' OR \"Expired Callback\" LIKE 'https://%') AND \"Expires\" IS NOT NULL)),"
 		
 		// Expired callback successful (If a response to the expired callback request was successful)
-		"\"Expired Callback Successful\" INTEGER NOT NULL DEFAULT(FALSE) CHECK(\"Expired Callback Successful\" = FALSE OR (\"Expired Callback Successful\" = TRUE AND \"Received\" IS NULL AND \"Expired Callback\" IS NOT NULL AND \"Expires\" IS NOT NULL))"
+		"\"Expired Callback Successful\" INTEGER NOT NULL DEFAULT(FALSE) CHECK(\"Expired Callback Successful\" = FALSE OR (\"Expired Callback Successful\" = TRUE AND \"Received\" IS NULL AND \"Expired Callback\" IS NOT NULL AND \"Expires\" IS NOT NULL)),"
+		
+		// Has price (If the payment has a specified price)
+		"\"Has Price\" INTEGER NOT NULL DEFAULT(FALSE) CHECK(\"Has Price\" = FALSE OR (\"Has Price\" = TRUE AND \"Price\" IS NOT NULL))"
 		
 	") STRICT;").c_str(), nullptr, nullptr, nullptr) != SQLITE_OK) {
 	
@@ -263,7 +266,7 @@ Payments::Payments(sqlite3 *databaseConnection) :
 		// Get expired callback successful column exists from argument
 		bool *expiredCallbackSuccessfulColumnExists = reinterpret_cast<bool *>(argument);
 		
-		// Set confirmations changed column exists
+		// Set expired callback successful column exists
 		*expiredCallbackSuccessfulColumnExists = numberOfRows && !strcmp(rows[0], "1");
 		
 		// Return success
@@ -283,6 +286,36 @@ Payments::Payments(sqlite3 *databaseConnection) :
 		
 			// Throw exception
 			throw runtime_error("Adding expired callback successful column to payments table in the database failed");
+		}
+	}
+	
+	// Check if getting if has price column exists in the payments table in the database failed
+	bool hasPriceColumnExists;
+	if(sqlite3_exec(databaseConnection, "SELECT COUNT() > 0 FROM pragma_table_info(\"Payments\") WHERE \"name\"='Has Price';", [](void *argument, int numberOfRows, char **rows, char **columnNames) -> int {
+	
+		// Get has price column exists from argument
+		bool *hasPriceColumnExists = reinterpret_cast<bool *>(argument);
+		
+		// Set has price column exists
+		*hasPriceColumnExists = numberOfRows && !strcmp(rows[0], "1");
+		
+		// Return success
+		return 0;
+		
+	}, &hasPriceColumnExists, nullptr) != SQLITE_OK) {
+	
+		// Throw exception
+		throw runtime_error("Getting if has price column exists in the payments table in the database failed");
+	}
+	
+	// Check if has price column doesn't exist
+	if(!hasPriceColumnExists) {
+	
+		// Check if adding has price column to payments table in the database failed
+		if(sqlite3_exec(databaseConnection, "ALTER TABLE \"Payments\" ADD COLUMN \"Has Price\" INTEGER NOT NULL DEFAULT(FALSE) CHECK(\"Has Price\" = FALSE OR (\"Has Price\" = TRUE AND \"Price\" IS NOT NULL));", nullptr, nullptr, nullptr) != SQLITE_OK) {
+		
+			// Throw exception
+			throw runtime_error("Adding has price column to payments table in the database failed");
 		}
 	}
 	
@@ -393,6 +426,11 @@ Payments::Payments(sqlite3 *databaseConnection) :
 		"CREATE TRIGGER IF NOT EXISTS \"Payments Check Expired Callback Successful Trigger\" BEFORE UPDATE OF \"Expired Callback Successful\" ON \"Payments\" FOR EACH ROW WHEN NEW.\"Expired Callback Successful\" = TRUE AND OLD.\"Expires\" IS NOT NULL AND OLD.\"Expires\" > UNIXEPOCH('now') BEGIN "
 			"SELECT RAISE(ABORT, 'expired callback successful is invalid');"
 		"END;"
+		
+		// Keep has price
+		"CREATE TRIGGER IF NOT EXISTS \"Payments Keep Has Price\" BEFORE UPDATE OF \"Has Price\" ON \"Payments\" BEGIN "
+			"SELECT RAISE(ABORT, 'has price can''t change');"
+		"END;"
 	
 	"", nullptr, nullptr, nullptr) != SQLITE_OK) {
 	
@@ -428,7 +466,7 @@ Payments::Payments(sqlite3 *databaseConnection) :
 	}
 	
 	// Check if preparing create payment statement failed
-	if(sqlite3_prepare_v3(databaseConnection, "INSERT INTO \"Payments\" (\"ID\", \"URL\", \"Price\", \"Required Confirmations\", \"Completed Callback\", \"Received Callback\", \"Confirmed Callback\") VALUES (?, ?, ?, ?, ?, ?, ?);", -1, SQLITE_PREPARE_PERSISTENT, &createPaymentStatement, nullptr) != SQLITE_OK) {
+	if(sqlite3_prepare_v3(databaseConnection, "INSERT INTO \"Payments\" (\"ID\", \"URL\", \"Price\", \"Required Confirmations\", \"Completed Callback\", \"Received Callback\", \"Confirmed Callback\", \"Has Price\") VALUES (?, ?, ?, ?, ?, ?, ?, IIF(?3 IS NULL, FALSE, TRUE));", -1, SQLITE_PREPARE_PERSISTENT, &createPaymentStatement, nullptr) != SQLITE_OK) {
 	
 		// Throw exception
 		throw runtime_error("Preparing create payment statement failed");
@@ -438,7 +476,7 @@ Payments::Payments(sqlite3 *databaseConnection) :
 	unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> createPaymentStatementUniquePointer(createPaymentStatement, sqlite3_finalize);
 	
 	// Check if preparing create payment with expiration statement failed
-	if(sqlite3_prepare_v3(databaseConnection, "INSERT INTO \"Payments\" (\"ID\", \"URL\", \"Price\", \"Required Confirmations\", \"Expires\", \"Completed Callback\", \"Received Callback\", \"Confirmed Callback\", \"Expired Callback\") VALUES (?, ?, ?, ?, UNIXEPOCH('now') + ?, ?, ?, ?, ?);", -1, SQLITE_PREPARE_PERSISTENT, &createPaymentWithExpirationStatement, nullptr) != SQLITE_OK) {
+	if(sqlite3_prepare_v3(databaseConnection, "INSERT INTO \"Payments\" (\"ID\", \"URL\", \"Price\", \"Required Confirmations\", \"Expires\", \"Completed Callback\", \"Received Callback\", \"Confirmed Callback\", \"Expired Callback\", \"Has Price\") VALUES (?, ?, ?, ?, UNIXEPOCH('now') + ?, ?, ?, ?, ?, IIF(?3 IS NULL, FALSE, TRUE));", -1, SQLITE_PREPARE_PERSISTENT, &createPaymentWithExpirationStatement, nullptr) != SQLITE_OK) {
 	
 		// Throw exception
 		throw runtime_error("Preparing create payment with expiration statement failed");
@@ -456,6 +494,16 @@ Payments::Payments(sqlite3 *databaseConnection) :
 	
 	// Automatically free get payment info statement
 	unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> getPaymentInfoStatementUniquePointer(getPaymentInfoStatement, sqlite3_finalize);
+	
+	// Check if preparing get payment price statement failed
+	if(sqlite3_prepare_v3(databaseConnection, "SELECT \"Unique Number\", IIF(\"Has Price\" = TRUE, \"Price\", NULL) AS \"Initial Price\" FROM \"Payments\" WHERE \"URL\" = ?;", -1, SQLITE_PREPARE_PERSISTENT, &getPaymentPriceStatement, nullptr) != SQLITE_OK) {
+	
+		// Throw exception
+		throw runtime_error("Preparing get payment price statement failed");
+	}
+	
+	// Automatically free get payment price statement
+	unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> getPaymentPriceStatementUniquePointer(getPaymentPriceStatement, sqlite3_finalize);
 	
 	// Check if preparing get receiving payment for URL statement failed
 	if(sqlite3_prepare_v3(databaseConnection, "SELECT \"Unique Number\", \"ID\", \"Price\", \"Received Callback\" FROM \"Payments\" WHERE \"URL\" = ? AND \"Received\" IS NULL AND (\"Expires\" IS NULL OR \"Expires\" > UNIXEPOCH('now'));", -1, SQLITE_PREPARE_PERSISTENT, &getReceivingPaymentForUrlStatement, nullptr) != SQLITE_OK) {
@@ -646,6 +694,9 @@ Payments::Payments(sqlite3 *databaseConnection) :
 	// Release get payment info statement unique pointer
 	getPaymentInfoStatementUniquePointer.release();
 	
+	// Release get payment price statement unique pointer
+	getPaymentPriceStatementUniquePointer.release();
+	
 	// Release get receiving payment for URL statement unique pointer
 	getReceivingPaymentForUrlStatementUniquePointer.release();
 	
@@ -729,6 +780,16 @@ Payments::~Payments() {
 	
 		// Display message
 		cout << "Freeing get payment info statement failed" << endl;
+		
+		// Set error occurred
+		Common::setErrorOccurred();
+	}
+	
+	// Check if freeing get payment price statement failed
+	if(sqlite3_finalize(getPaymentPriceStatement) != SQLITE_OK) {
+	
+		// Display message
+		cout << "Freeing get payment price statement failed" << endl;
 		
 		// Set error occurred
 		Common::setErrorOccurred();
@@ -1069,6 +1130,69 @@ tuple<uint64_t, string, optional<uint64_t>, uint64_t, bool, uint64_t, optional<u
 			
 			// Throw exception
 			throw runtime_error("Running get payment info statement failed");
+		}
+		
+		// Return result
+		return result;
+	}
+	
+	// Return nothing
+	return {};
+}
+
+// Get payment price
+tuple<uint64_t, optional<uint64_t>> Payments::getPaymentPrice(const char *url) {
+
+	// Lock
+	lock_guard guard(lock);
+	
+	// Check if resetting and clearing get payment price statement failed
+	if(sqlite3_reset(getPaymentPriceStatement) != SQLITE_OK || sqlite3_clear_bindings(getPaymentPriceStatement) != SQLITE_OK) {
+	
+		// Throw exception
+		throw runtime_error("Resetting and clearing get payment price statement failed");
+	}
+
+	// Check if binding get payment price statement's values failed
+	if(sqlite3_bind_text(getPaymentPriceStatement, 1, url, -1, SQLITE_STATIC) != SQLITE_OK) {
+	
+		// Throw exception
+		throw runtime_error("Binding get payment price statement's values failed");
+	}
+	
+	// Check if running get payment price statement failed
+	const int sqlResult = sqlite3_step(getPaymentPriceStatement);
+	if(sqlResult != SQLITE_ROW && sqlResult != SQLITE_DONE) {
+	
+		// Reset get payment price statement
+		sqlite3_reset(getPaymentPriceStatement);
+		
+		// Throw exception
+		throw runtime_error("Running get payment price statement failed");
+	}
+	
+	// Check if payment was found
+	if(sqlResult == SQLITE_ROW) {
+		
+		// Create result from payment's info
+		const int64_t priceStorage = (sqlite3_column_type(getPaymentPriceStatement, 1) == SQLITE_NULL) ? 0 : sqlite3_column_int64(getPaymentPriceStatement, 1);
+		const tuple<uint64_t, optional<uint64_t>> result(
+		
+			// Unique number
+			sqlite3_column_int64(getPaymentPriceStatement, 0),
+			
+			// Price
+			(sqlite3_column_type(getPaymentPriceStatement, 1) == SQLITE_NULL) ? nullopt : optional<uint64_t>(*reinterpret_cast<const uint64_t *>(&priceStorage))
+		);
+	
+		// Check if running get payment price statement failed
+		if(sqlite3_step(getPaymentPriceStatement) != SQLITE_DONE) {
+		
+			// Reset get payment price statement
+			sqlite3_reset(getPaymentPriceStatement);
+			
+			// Throw exception
+			throw runtime_error("Running get payment price statement failed");
 		}
 		
 		// Return result

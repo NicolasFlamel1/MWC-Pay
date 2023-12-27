@@ -8,11 +8,14 @@
 #include "./consensus.h"
 #include "event2/buffer.h"
 #include "event2/bufferevent_ssl.h"
+#include "event2/keyvalq_struct.h"
 #include "event2/thread.h"
 #include "./gzip.h"
 #include "./mqs.h"
 #include "openssl/ssl.h"
+#include "png.h"
 #include "./public_server.h"
+#include "qrcodegen.h"
 #include "secp256k1_commitment.h"
 #include "simdjson.h"
 #include "./slate.h"
@@ -48,6 +51,9 @@ static const size_t MAXIMUM_HEADERS_SIZE = 3 * Common::BYTES_IN_A_KILOBYTE;
 
 // Maximum body size
 static const size_t MAXIMUM_BODY_SIZE = 2 * Common::BYTES_IN_A_KILOBYTE;
+
+// Default QR code padding
+static const int DEFAULT_QR_CODE_PADDING = 4;
 
 
 // Supporting function implementation
@@ -285,8 +291,8 @@ void PublicServer::run(const unordered_map<char, const char *> &providedOptions,
 		// Set HTTP server's maximum body size
 		evhttp_set_max_body_size(httpServer.get(), MAXIMUM_BODY_SIZE);
 		
-		// Set HTTP server to only allow POST requests
-		evhttp_set_allowed_methods(httpServer.get(), EVHTTP_REQ_POST | EVHTTP_REQ_OPTIONS);
+		// Set HTTP server to only allow GET, POST, and OPTIONS requests
+		evhttp_set_allowed_methods(httpServer.get(), EVHTTP_REQ_GET | EVHTTP_REQ_POST | EVHTTP_REQ_OPTIONS);
 		
 		// Get certificate from provided options
 		const char *certificate = providedOptions.contains('t') ? providedOptions.at('t') : nullptr;
@@ -564,7 +570,7 @@ void PublicServer::handleGenericRequest(evhttp_request *request) {
 	if(evhttp_request_get_command(request) == EVHTTP_REQ_OPTIONS) {
 	
 		// Check if setting request's response's allowed methods and headers CORS header failed
-		if(evhttp_add_header(evhttp_request_get_output_headers(request), "Access-Control-Allow-Methods", "POST, OPTIONS") || evhttp_add_header(evhttp_request_get_output_headers(request), "Access-Control-Allow-Headers", "Content-Type, Accept-Encoding")) {
+		if(evhttp_add_header(evhttp_request_get_output_headers(request), "Access-Control-Allow-Methods", "GET, POST, OPTIONS") || evhttp_add_header(evhttp_request_get_output_headers(request), "Access-Control-Allow-Headers", "Content-Type, Accept-Encoding")) {
 		
 			// Remove request's response's CORS headers
 			evhttp_remove_header(evhttp_request_get_output_headers(request), "Access-Control-Allow-Origin");
@@ -580,6 +586,298 @@ void PublicServer::handleGenericRequest(evhttp_request *request) {
 		
 		// Reply with ok response to request
 		evhttp_send_reply(request, HTTP_OK, nullptr, nullptr);
+	}
+	
+	// Otherwise check if request is a GET request
+	else if(evhttp_request_get_command(request) == EVHTTP_REQ_GET) {
+	
+		// Check if request doesn't have a URI
+		const evhttp_uri *uri = evhttp_request_get_evhttp_uri(request);
+		if(!uri) {
+		
+			// Reply with not found response to request
+			evhttp_send_reply(request, HTTP_NOTFOUND, nullptr, nullptr);
+			
+			// Return
+			return;
+		}
+		
+		// Check if URI path is invalid
+		const char *path = evhttp_uri_get_path(uri);
+		if(!path || strlen(path) != sizeof('/') + Payments::URL_SIZE + sizeof(".png") - sizeof('\0') || path[0] != '/' || strcasecmp(&path[sizeof('/') + Payments::URL_SIZE], ".png")) {
+		
+			// Reply with not found response to request
+			evhttp_send_reply(request, HTTP_NOTFOUND, nullptr, nullptr);
+			
+			// Return
+			return;
+		}
+		
+		// Get payment URL from the URI path
+		char paymentUrl[Payments::URL_SIZE + sizeof('\0')];
+		memcpy(paymentUrl, &path[sizeof('/')], Payments::URL_SIZE);
+		paymentUrl[Payments::URL_SIZE] = '\0';
+		
+		// Check if payment doesn't exist
+		const tuple paymentInfo = payments.getPaymentPrice(paymentUrl);
+		if(!get<0>(paymentInfo)) {
+		
+			// Reply with not found response to request
+			evhttp_send_reply(request, HTTP_NOTFOUND, nullptr, nullptr);
+			
+			// Return
+			return;
+		}
+		
+		// Check if parsing the URI's query string failed
+		evkeyvalq queryValues;
+		if(!evhttp_uri_get_query(uri) || evhttp_parse_query_str(evhttp_uri_get_query(uri), &queryValues)) {
+		
+			// Reply with bad request response to request
+			evhttp_send_reply(request, HTTP_BADREQUEST, nullptr, nullptr);
+			
+			// Return
+			return;
+		}
+		
+		// Automatically free query values when done
+		const unique_ptr<evkeyvalq, decltype(&evhttp_clear_headers)> queryValuesUniquePointer(&queryValues, evhttp_clear_headers);
+		
+		// Check if URL parameter isn't provided or is invalid
+		const char *url = evhttp_find_header(&queryValues, "url");
+		if(!url || !*url || !Common::isValidUtf8String(reinterpret_cast<const uint8_t *>(url), strlen(url))) {
+		
+			// Reply with bad request response to request
+			evhttp_send_reply(request, HTTP_BADREQUEST, nullptr, nullptr);
+			
+			// Return
+			return;
+		}
+		
+		// Check if padding is provided
+		int padding;
+		const char *paddingParameter = evhttp_find_header(&queryValues, "padding");
+		if(paddingParameter) {
+		
+			// Check if padding parameter is true
+			if(!strcasecmp(paddingParameter, "true")) {
+			
+				// Set padding to default QR code padding
+				padding = DEFAULT_QR_CODE_PADDING;
+			}
+			
+			// Otherwise check if padding parameter is false
+			else if(!strcasecmp(paddingParameter, "false")) {
+			
+				// Set padding to zero
+				padding = 0;
+			}
+			
+			// Otherwise
+			else {
+			
+				// Reply with bad request response to request
+				evhttp_send_reply(request, HTTP_BADREQUEST, nullptr, nullptr);
+				
+				// Return
+				return;
+			}
+		}
+		
+		// Otherwise
+		else {
+		
+			// Set padding to default QR code padding
+			padding = DEFAULT_QR_CODE_PADDING;
+		}
+		
+		// Check if invert is provided
+		bool invert;
+		const char *invertParameter = evhttp_find_header(&queryValues, "invert");
+		if(invertParameter) {
+		
+			// Check if invert parameter is true
+			if(!strcasecmp(invertParameter, "true")) {
+			
+				// Set invert to true
+				invert = true;
+			}
+			
+			// Otherwise check if invert parameter is false
+			else if(!strcasecmp(invertParameter, "false")) {
+			
+				// Set invert to false
+				invert = false;
+			}
+			
+			// Otherwise
+			else {
+			
+				// Reply with bad request response to request
+				evhttp_send_reply(request, HTTP_BADREQUEST, nullptr, nullptr);
+				
+				// Return
+				return;
+			}
+		}
+		
+		// Otherwise
+		else {
+		
+			// Set invert to false
+			invert = false;
+		}
+		
+		// Check if payment has a price
+		string data;
+		if(get<1>(paymentInfo).has_value()) {
+		
+			// Set data
+			data = "{\"Recipient Address\":\"" + Common::jsonEscape(url) + "\",\"Amount\":\"" + Common::getNumberInNumberBase(get<1>(paymentInfo).value(), Consensus::NUMBER_BASE) + "\"}";
+		}
+		
+		// Otherwise
+		else {
+		
+			// Set data
+			data = "{\"Recipient Address\":\"" + Common::jsonEscape(url) + "\"}";
+		}
+		
+		// Check if data's capacity is too small
+		if(data.capacity() < qrcodegen_BUFFER_LEN_MAX) {
+		
+			// Increase data's capacity
+			data.reserve(qrcodegen_BUFFER_LEN_MAX);
+		}
+		
+		// Check if creating QR code failed
+		uint8_t qrCode[qrcodegen_BUFFER_LEN_MAX];
+		if(!qrcodegen_encodeBinary(reinterpret_cast<uint8_t *>(data.data()), data.size(), qrCode, qrcodegen_Ecc_LOW, qrcodegen_VERSION_MIN, qrcodegen_VERSION_MAX, qrcodegen_Mask_AUTO, false)) {
+		
+			// Reply with bad request response to request
+			evhttp_send_reply(request, HTTP_BADREQUEST, nullptr, nullptr);
+			
+			// Return
+			return;
+		}
+		
+		// Get QR code size
+		const int size = qrcodegen_getSize(qrCode);
+		
+		// Check if creating PNG failed
+		png_infop info = nullptr;
+		const auto pngDestructor = [&info](png_structp png) {
+		
+			// Destroy png
+			png_destroy_write_struct(&png, &info);
+		};
+		
+		const unique_ptr<png_struct, decltype(pngDestructor)> png(png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr), pngDestructor);
+		if(!png) {
+
+			// Reply with internal server error response to request
+			evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
+			
+			// Return
+			return;
+		}
+		
+		// Check if creating PNG's info failed
+		info = png_create_info_struct(png.get());
+		if(!info) {
+
+			// Reply with internal server error response to request
+			evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
+			
+			// Return
+			return;
+		}
+		
+		// Check if creating buffer failed
+		const unique_ptr<evbuffer, decltype(&evbuffer_free)> buffer(evbuffer_new(), evbuffer_free);
+		if(!buffer) {
+		
+			// Reply with internal server error response to request
+			evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
+			
+			// Return
+			return;
+		}
+		
+		// Set PNG error handler
+		if(setjmp(png_jmpbuf(png.get()))) {
+
+			// Reply with internal server error response to request
+			evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
+			
+			// Return
+			return;
+		}
+		
+		// Set PNG write function
+		png_set_write_fn(png.get(), buffer.get(), [](const png_structp png, const png_bytep data, const png_size_t length) {
+		
+			// Get buffer
+			evbuffer *buffer = reinterpret_cast<evbuffer *>(png_get_io_ptr(png));
+			
+			// Check if adding data to buffer failed
+			if(evbuffer_add(buffer, data, length)) {
+			
+				// Trigger PNG error
+				png_error(png, nullptr);
+			}
+			
+		}, nullptr);
+		
+		// Set PNG image details
+		png_set_IHDR(png.get(), info, size + padding * 2, size + padding * 2, 1, PNG_COLOR_TYPE_GRAY, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
+		
+		// Write PNG info
+		png_write_info(png.get(), info);
+		
+		// Supply each PNG pixel as a byte
+		png_set_packing(png.get());
+		
+		// Check if not inverting
+		if(!invert) {
+		
+			// Invert PNG
+			png_set_invert_mono(png.get());
+		}
+		
+		// Go through all rows in the QR code
+		for(int y = -padding; y < size + padding; ++y) {
+		
+			// Go through all padding and modules in the row
+			png_byte pixels[size + padding * 2];
+			for(int x = -padding; x < size + padding; ++x) {
+			
+				// Set pixel to padding or module
+				pixels[x + padding] = (y < 0 || y >= size || x < 0 || x >= size) ? 0 : qrcodegen_getModule(qrCode, x, y);
+			}
+			
+			// Write pixels to png
+			png_write_row(png.get(), pixels);
+		}
+
+		// Write PNG end
+		png_write_end(png.get(), nullptr);
+		
+		// Check if setting request's response's content type header failed
+		if(evhttp_add_header(evhttp_request_get_output_headers(request), "Content-Type", "image/png")) {
+		
+			// Remove request's response's content type header
+			evhttp_remove_header(evhttp_request_get_output_headers(request), "Content-Type");
+			
+			// Reply with internal server error response to request
+			evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
+			
+			// Return
+			return;
+		}
+		
+		// Reply with ok response to request
+		evhttp_send_reply(request, HTTP_OK, nullptr, buffer.get());
 	}
 	
 	// Otherwise

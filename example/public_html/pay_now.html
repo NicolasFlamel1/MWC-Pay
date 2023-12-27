@@ -269,6 +269,18 @@
 <body>
 	<h2>Payment Information</h2>
 	<p>Send <?= ($paymentInfo["price"] !== NULL) ? preg_replace('/`/u', "&#x60;", htmlspecialchars($paymentInfo["price"], ENT_QUOTES)) : "some"; ?> MWC<?= ($paymentInfo["price"] !== NULL) ? " (≈$" . sprintf("%.2f", $priceInUsdt) . ")" : ""; ?> to <a target="_blank" href="<?= preg_replace('/`/u', "&#x60;", htmlspecialchars($url, ENT_QUOTES)); ?>"><?= preg_replace('/`/u', "&#x60;", htmlspecialchars($url, ENT_QUOTES)); ?></a> to purchase the item(s)</p>
+	<img src="<?= preg_replace('/`/u', "&#x60;", htmlspecialchars($url . ".png?" . http_build_query([
+		
+		// URL
+		"url" => $url,
+		
+		// Padding
+		"padding" => "true",
+		
+		// Invert
+		"invert" => "false"
+	
+	]), ENT_QUOTES)); ?>" crossorigin style="width: 200px; image-rendering: crisp-edges; image-rendering: pixelated;">
 	<p>Recipient payment proof address: <?= preg_replace('/`/u', "&#x60;", htmlspecialchars($paymentInfo["recipient_payment_proof_address"], ENT_QUOTES)); ?></p>
 	<hr>
 	<iframe frameborder="0" src="./payment_status.html?<?= http_build_query([
