@@ -148,14 +148,14 @@ HTTP requests sent to the public server's endpoint will receive a response with 
 
 Any other response status codes should be considered the equivalent of an `HTTP 400 Bad Request` status code.
 
-MWC Pay's public server can also generate invoice QR codes for payments as PNG images. These QR codes encode a provided URL as a recipient address and the payment's amount if it was created with a specified price. These QR codes can be scanned by wallets that support them to automatically fill in the details for a payment. It accepts the following parameters in the request's query string:
+MWC Pay's public server can also generate invoice QR codes for payments as PNG images. These QR codes encode as JSON a provided URL as a recipient address and the payment's price as an amount if it was created with a specified price. These QR codes can be scanned by wallets that support them to automatically fill in the details when sending a payment. It accepts the following parameters in the request's query string:
 * `url`: The recipient address for the QR code to include.
 * `padding` (optional): `true` for the QR code to have a four unit padding around it as per the QR code specs or `false` to not have any padding. If not provided then the QR code will have padding.
 * `invert` (optional): `true` for the QR code to have its colors inverted or `false` to not invert its colors. If not provided then the QR code will not be inverted. 
 
 Example:
 * Request: `http://localhost:9011/abc.png?url=http%3A%2F%2Fexample.com&padding=true&invert=false`
-* Response: PNG image of the QR code containing `{"Recipient Address":"http://example.com","Amount":"123.456"}`
+* Response: PNG image of the QR code containing the JSON `{"Recipient Address":"http://example.com","Amount":"123.456"}`
 
 ### Privacy Considerations
 The following should be taken into consideration to ensure that one's privacy is preserved when running MWC Pay:
