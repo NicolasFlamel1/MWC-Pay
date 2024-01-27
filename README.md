@@ -17,7 +17,9 @@ make FLOONET=1
 ```
 
 ### Usage
-When MWC Pay starts, it'll prompt you for a password that will be used to create or open a wallet. Then it will connect to the Tor network and sync with the MimbleWimble Coin network. After that's completed, it'll start the private and public servers which can then be used for creating and receiving payments. An example of how to interface with the APIs that MWC Pay provides can be found [here](https://github.com/NicolasFlamel1/MWC-Pay/tree/master/example).
+When MWC Pay starts, it'll prompt you for a password that will be used to create or open a wallet. Then it will connect to the Tor network and sync with the MimbleWimble Coin network. After that's completed, it'll start the private and public servers which can then be used for creating and receiving payments. An example of how to directly interface with the APIs that MWC Pay provides can be found [here](https://github.com/NicolasFlamel1/MWC-Pay/tree/master/example).
+
+There's also an SDK available for [PHP](https://github.com/NicolasFlamel1/MWC-Pay-PHP-SDK) that simplifies communicating with MWC Pay.
 
 MWC Pay consists of the following components:
 * Wallet: The wallet that receives payments.
@@ -88,8 +90,8 @@ MWC Pay's private server allows for payments to be created, and it provides the 
    Any other response status codes should be considered the equivalent of an `HTTP 400 Bad Request` status code.
 
    Example:
-   * Request: `http://localhost:9010/create_payment?price=123.456&required_confirmations=5&timeout=600&completed_callback=http%3A%2F%2Fexample.com%2F&received_callback=http%3A%2F%2Fexample.com%2F&confirmed_callback=http%3A%2F%2Fexample.com%2F&expired_callback=http%3A%2F%2Fexample.com%2F`
-   * Request: `http://localhost:9010/create_payment?completed_callback=http%3A%2F%2Fexample.com%2F`
+   * Request: `http://localhost:9010/create_payment?price=123.456&required_confirmations=5&timeout=600&completed_callback=http%3A%2F%2Fexample.com%2Fcompleted&received_callback=http%3A%2F%2Fexample.com%2Freceived&confirmed_callback=http%3A%2F%2Fexample.com%2Fconfirmed&expired_callback=http%3A%2F%2Fexample.com%2Fexpired`
+   * Request: `http://localhost:9010/create_payment?completed_callback=http%3A%2F%2Fexample.com%2Fcompleted`
    * Response: `{"payment_id": "123", "url": "abc", "recipient_payment_proof_address": "52cflcqg7mr2b2mbg6x62huvut3sufz3gthjblo7yn7snfohrv54nxqd"}`
 
 2. `get_payment_info(payment_id)`: Returns the URL, price, required confirmations, if received, confirmations, time remaining, status, and recipient payment proof address for a payment with the provided ID.

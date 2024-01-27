@@ -77,6 +77,8 @@
 				// Items
 				"items" => implode(",", $_SESSION["cart"])
 			])
+			
+			// Create payment API also supports received_callback, confirmed_callback, and expired_callback parameters that are not used in this example
 		]));
 		
 		if($createPaymentResponse === FALSE) {
@@ -254,7 +256,7 @@
 					// Add protocol to link
 					this.setAttribute("href", "web+mwc" + "<?= preg_replace('/(["\\\\])/u', "\\\\\$1", $url); ?>");
 					
-					// Request animation frame
+					// Set timeout
 					var self = this;
 					setTimeout(function() {
 					
