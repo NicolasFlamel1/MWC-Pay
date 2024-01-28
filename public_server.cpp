@@ -486,14 +486,14 @@ void PublicServer::run(const unordered_map<char, const char *> &providedOptions,
 		if(inet_pton(AF_INET6, address, temp) == 1) {
 		
 			// Display message
-			osyncstream(cout) << "Public server started and listening at " << (usingTlsServer ? "https" : "http") << "://[" << address << ']' << (displayPort ? ':' + to_string(port) : "") << endl;
+			osyncstream(cout) << "Public server started and listening at " << (usingTlsServer ? "https" : "http") << "://[" << address << ']' << (displayPort ? ':' + to_string(port) : "") << (providedOptions.contains('z') ? " and http://" + wallet.getOnionServiceAddress() + ".onion" : "") << endl;
 		}
 		
 		// Otherwise
 		else {
 		
 			// Display message
-			osyncstream(cout) << "Public server started and listening at " << (usingTlsServer ? "https" : "http") << "://" << address << (displayPort ? ':' + to_string(port) : "") << endl;
+			osyncstream(cout) << "Public server started and listening at " << (usingTlsServer ? "https" : "http") << "://" << address << (displayPort ? ':' + to_string(port) : "") << (providedOptions.contains('z') ? " and http://" + wallet.getOnionServiceAddress() + ".onion" : "") << endl;
 		}
 		
 		// Set started
