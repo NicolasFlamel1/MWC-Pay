@@ -39,6 +39,12 @@ class PublicServer final {
 		
 		// Validate option
 		static bool validateOption(const char option, const char *value, char *argv[]);
+		
+		// Default address
+		static const char *DEFAULT_ADDRESS;
+		
+		// Default port
+		static const uint16_t DEFAULT_PORT;
 	
 	// Private
 	private:

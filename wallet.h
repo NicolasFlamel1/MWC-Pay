@@ -65,6 +65,12 @@ class Wallet final {
 		// Decrypt address message
 		vector<uint8_t> decryptAddressMessage(const uint8_t *encryptedData, const size_t length, const uint8_t nonce[Crypto::CHACHA20_NONCE_SIZE], const uint8_t senderPublicKey[Crypto::ED25519_PUBLIC_KEY_SIZE], const uint64_t index, const uint8_t version) const;
 		
+		// Get Onion Service private key
+		string getOnionServicePrivateKey() const;
+		
+		// Get Onion Service address
+		string getOnionServiceAddress() const;
+		
 	// Private
 	private:
 	

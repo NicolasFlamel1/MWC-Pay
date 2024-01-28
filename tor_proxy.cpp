@@ -1,4 +1,5 @@
 // Header files
+#include <arpa/inet.h>
 #include <cstring>
 #include <iostream>
 #include <netdb.h>
@@ -7,6 +8,7 @@
 #include <unistd.h>
 #include "./common.h"
 #include "openssl/rand.h"
+#include "./public_server.h"
 #include "./tor_proxy.h"
 
 using namespace std;
@@ -28,7 +30,7 @@ using namespace std;
 // Supporting function implementation
 
 // Constructor
-TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions) :
+TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions, const Wallet &wallet) :
 
 	// Set started
 	started(false),
@@ -72,6 +74,20 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions) :
 		
 			// Throw exception
 			throw runtime_error("Tor transport plugin can't be used with an external Tor SOCKS proxy");
+		}
+		
+		// Check if creating Onion Service and a SOCKS proxy address is provided
+		if(providedOptions.contains('z') && providedOptions.contains('s')) {
+		
+			// Throw exception
+			throw runtime_error("Onion Service can't be created when using an external Tor SOCKS proxy");
+		}
+		
+		// Check if creating Onion Service and a public server certificate or key is provided
+		if(providedOptions.contains('z') && (providedOptions.contains('t') || providedOptions.contains('y'))) {
+		
+			// Throw exception
+			throw runtime_error("Onion Service can't be created when using a public server certificate or key");
 		}
 		
 		// Check if a Tor SOCKS proxy address is provided
@@ -698,6 +714,273 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions) :
 			// Display message
 			osyncstream(cout) << endl << "Connected to the Tor network" << endl;
 			
+			// Check if a creating an Onion Service
+			if(providedOptions.contains('z')) {
+			
+				// Display message
+				osyncstream(cout) << "Creating Onion Service" << endl;
+				
+				// Try
+				string onionServicePrivateKey;
+				string portMap;
+				try {
+				
+					// Get wallet's Onion Service private key
+					onionServicePrivateKey = wallet.getOnionServicePrivateKey();
+					
+					// Get public server address from provided options
+					string publicServerAddress = providedOptions.contains('e') ? providedOptions.at('e') : PublicServer::DEFAULT_ADDRESS;
+					
+					// Check if public server address is an IPv6 address
+					char temp[sizeof(in6_addr)];
+					const bool isIpv6 = inet_pton(AF_INET6, publicServerAddress.c_str(), temp) == 1;
+					if(isIpv6) {
+					
+						// Enclose public server address in brackets
+						publicServerAddress = '[' + publicServerAddress + ']';
+					}
+					
+					// Check if public server address is invalid
+					if(!Common::isValidUtf8String(reinterpret_cast<const uint8_t *>(publicServerAddress.data()), publicServerAddress.size()) || strpbrk(publicServerAddress.c_str(), "=, \r\n") || (!isIpv6 && strchr(publicServerAddress.c_str(), ':'))) {
+					
+						// Securely clear Onion Service private key
+						explicit_bzero(onionServicePrivateKey.data(), onionServicePrivateKey.capacity());
+						
+						// Block signals
+						Common::blockSignals();
+						
+						// Display message
+						osyncstream(cout) << "Creating Onion Service failed" << endl;
+						
+						// Check if closing control socket was successful
+						if(!close(controlSocket)) {
+						
+							// Try
+							try {
+							
+								// Wait for main thread to finish
+								mainThread.join();
+							}
+							
+							// Catch errors
+							catch(...) {
+							
+							}
+						}
+						
+						// Try
+						try {
+					
+							// Remove data directory
+							filesystem::remove_all(dataDirectory);
+						}
+						
+						// Catch errors
+						catch(...) {
+						
+						}
+						
+						// Exit failure
+						exit(EXIT_FAILURE);
+					}
+					
+					// Get public server port from provided options
+					const uint16_t publicServerPort = providedOptions.contains('o') ? strtoul(providedOptions.at('o'), nullptr, Common::DECIMAL_NUMBER_BASE) : PublicServer::DEFAULT_PORT;
+					
+					// Get port map for public server's port
+					portMap = " Port=" + to_string(Common::HTTP_PORT) + ',' + publicServerAddress + ':' + to_string(publicServerPort) + "\r\n";
+				}
+				
+				// Catch errors
+				catch(...) {
+				
+					// Securely clear Onion Service private key
+					explicit_bzero(onionServicePrivateKey.data(), onionServicePrivateKey.capacity());
+					
+					// Block signals
+					Common::blockSignals();
+					
+					// Display message
+					osyncstream(cout) << "Getting wallet's Onion Service private key failed" << endl;
+					
+					// Check if closing control socket was successful
+					if(!close(controlSocket)) {
+					
+						// Try
+						try {
+						
+							// Wait for main thread to finish
+							mainThread.join();
+						}
+						
+						// Catch errors
+						catch(...) {
+						
+						}
+					}
+					
+					// Try
+					try {
+				
+						// Remove data directory
+						filesystem::remove_all(dataDirectory);
+					}
+					
+					// Catch errors
+					catch(...) {
+					
+					}
+					
+					// Exit failure
+					exit(EXIT_FAILURE);
+				}
+				
+				// Check if a signal was received or sending add Onion Service request failed
+				if(Common::getSignalReceived() || write(controlSocket, "ADD_ONION ED25519-V3:", sizeof("ADD_ONION ED25519-V3:") - sizeof('\0')) != sizeof("ADD_ONION ED25519-V3:") - sizeof('\0') || write(controlSocket, onionServicePrivateKey.data(), onionServicePrivateKey.size()) != static_cast<ssize_t>(onionServicePrivateKey.size()) || write(controlSocket, portMap.data(), portMap.size()) != static_cast<ssize_t>(portMap.size())) {
+				
+					// Securely clear Onion Service private key
+					explicit_bzero(onionServicePrivateKey.data(), onionServicePrivateKey.capacity());
+					
+					// Block signals
+					Common::blockSignals();
+					
+					// Display message
+					osyncstream(cout) << "Sending add Onion Service request to Tor proxy failed" << endl;
+					
+					// Check if closing control socket was successful
+					if(!close(controlSocket)) {
+					
+						// Try
+						try {
+						
+							// Wait for main thread to finish
+							mainThread.join();
+						}
+						
+						// Catch errors
+						catch(...) {
+						
+						}
+					}
+					
+					// Try
+					try {
+				
+						// Remove data directory
+						filesystem::remove_all(dataDirectory);
+					}
+					
+					// Catch errors
+					catch(...) {
+					
+					}
+					
+					// Exit failure
+					exit(EXIT_FAILURE);
+				}
+				
+				// Securely clear Onion Service private key
+				explicit_bzero(onionServicePrivateKey.data(), onionServicePrivateKey.capacity());
+				
+				// Try
+				string onionServiceAddress;
+				string expectedAddOnionServiceResponse;
+				try {
+				
+					// Get wallet's Onion Service address
+					onionServiceAddress = wallet.getOnionServiceAddress();
+					
+					// Set expected add Onion Service response failed
+					expectedAddOnionServiceResponse = "250-ServiceID=" + onionServiceAddress + "\r\n250 OK\r\n";
+				}
+				
+				// Catch errors
+				catch(...) {
+				
+					// Block signals
+					Common::blockSignals();
+					
+					// Display message
+					osyncstream(cout) << "Getting wallet's Onion Service address failed" << endl;
+					
+					// Check if closing control socket was successful
+					if(!close(controlSocket)) {
+					
+						// Try
+						try {
+						
+							// Wait for main thread to finish
+							mainThread.join();
+						}
+						
+						// Catch errors
+						catch(...) {
+						
+						}
+					}
+					
+					// Try
+					try {
+				
+						// Remove data directory
+						filesystem::remove_all(dataDirectory);
+					}
+					
+					// Catch errors
+					catch(...) {
+					
+					}
+					
+					// Exit failure
+					exit(EXIT_FAILURE);
+				}
+				
+				// Check if a signal was received or adding Onion Service failed
+				uint8_t addOnionServiceResponse[expectedAddOnionServiceResponse.size()];
+				if(Common::getSignalReceived() || read(controlSocket, addOnionServiceResponse, sizeof(addOnionServiceResponse)) != static_cast<ssize_t>(sizeof(addOnionServiceResponse)) || memcmp(addOnionServiceResponse, expectedAddOnionServiceResponse.data(), sizeof(addOnionServiceResponse))) {
+				
+					// Block signals
+					Common::blockSignals();
+					
+					// Display message
+					osyncstream(cout) << "Creating Onion Service failed" << endl;
+					
+					// Check if closing control socket was successful
+					if(!close(controlSocket)) {
+					
+						// Try
+						try {
+						
+							// Wait for main thread to finish
+							mainThread.join();
+						}
+						
+						// Catch errors
+						catch(...) {
+						
+						}
+					}
+					
+					// Try
+					try {
+				
+						// Remove data directory
+						filesystem::remove_all(dataDirectory);
+					}
+					
+					// Catch errors
+					catch(...) {
+					
+					}
+					
+					// Exit failure
+					exit(EXIT_FAILURE);
+				}
+				
+				// Display message
+				osyncstream(cout) << "Created Onion Service: http://" << onionServiceAddress << ".onion" << endl;
+			}
+			
 			// Try
 			try {
 			
@@ -1004,7 +1287,10 @@ vector<option> TorProxy::getOptions() {
 			{"tor_bridge", required_argument, nullptr, 'b'},
 			
 			// Tor transport plugin
-			{"tor_transport_plugin", required_argument, nullptr, 'g'}
+			{"tor_transport_plugin", required_argument, nullptr, 'g'},
+			
+			// Tor create Onion Service
+			{"tor_create_onion_service", no_argument, nullptr, 'z'}
 		#endif
 	};
 }
@@ -1020,6 +1306,7 @@ void TorProxy::displayOptionsHelp() {
 		cout << "\t-x, --tor_socks_proxy_port\tSets the port to use for the external Tor SOCKS proxy address (default: " << DEFAULT_TOR_SOCKS_PROXY_PORT << ')' << endl;
 		cout << "\t-b, --tor_bridge\t\tSets the bridge to use for relaying into the Tor network (example: obfs4 1.2.3.4:12345)" << endl;
 		cout << "\t-g, --tor_transport_plugin\tSets the transport plugin to use to forward traffic to the bridge (example: obfs4 exec /usr/bin/obfs4proxy)" << endl;
+		cout << "\t-z, --tor_create_onion_service\tCreates an Onion Service that provides access to the public server" << endl;
 	#endif
 }
 

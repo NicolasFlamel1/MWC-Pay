@@ -140,7 +140,7 @@ class Crypto final {
 		static bool isValidX25519PublicKey(const uint8_t *publicKey, const size_t length);
 		
 		// Get X25519 private key
-		static bool getX25519PrivateKey(uint8_t x25519PrivateKey[X25519_PRIVATE_KEY_SIZE], const uint8_t ed25519PrivateKey[ED25519_PRIVATE_KEY_SIZE]);
+		static bool getX25519PrivateKey(uint8_t *x25519PrivateKey, const uint8_t ed25519PrivateKey[ED25519_PRIVATE_KEY_SIZE], const bool includePrf = false);
 		
 		// Get X25519 public key
 		static bool getX25519PublicKey(uint8_t x25519PublicKey[X25519_PUBLIC_KEY_SIZE], const uint8_t ed25519PublicKey[ED25519_PUBLIC_KEY_SIZE]);

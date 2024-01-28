@@ -12,6 +12,7 @@
 #include <thread>
 #include <unordered_map>
 #include <vector>
+#include "./wallet.h"
 
 // Extern C
 extern "C" {
@@ -32,7 +33,7 @@ class TorProxy final {
 	public:
 	
 		// Constructor
-		explicit TorProxy(const unordered_map<char, const char *> &providedOptions);
+		explicit TorProxy(const unordered_map<char, const char *> &providedOptions, const Wallet &wallet);
 		
 		// Destructr
 		~TorProxy();

@@ -1074,7 +1074,7 @@ bool Crypto::isValidX25519PublicKey(const uint8_t *publicKey, const size_t lengt
 }
 
 // Get X25519 private key
-bool Crypto::getX25519PrivateKey(uint8_t x25519PrivateKey[X25519_PRIVATE_KEY_SIZE], const uint8_t ed25519PrivateKey[ED25519_PRIVATE_KEY_SIZE]) {
+bool Crypto::getX25519PrivateKey(uint8_t *x25519PrivateKey, const uint8_t ed25519PrivateKey[ED25519_PRIVATE_KEY_SIZE], const bool includePrf) {
 
 	// Check if getting digest failed
 	const unique_ptr<EVP_MD, decltype(&EVP_MD_free)> digest(EVP_MD_fetch(nullptr, X25519_PRIVATE_KEY_DIGEST_ALGORITHM, nullptr), EVP_MD_free);
@@ -1150,7 +1150,7 @@ bool Crypto::getX25519PrivateKey(uint8_t x25519PrivateKey[X25519_PRIVATE_KEY_SIZ
 	}
 	
 	// Set X25519 private key to the hash
-	memcpy(x25519PrivateKey, hash, X25519_PRIVATE_KEY_SIZE);
+	memcpy(x25519PrivateKey, hash, X25519_PRIVATE_KEY_SIZE + (includePrf ? SCALAR_SIZE : 0));
 	
 	// Securely clear hash
 	explicit_bzero(hash, sizeof(hash));

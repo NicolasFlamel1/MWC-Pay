@@ -548,7 +548,7 @@ int main(int argc, char *argv[]) {
 		static const ExpiredMonitor expiredMonitor(payments);
 		
 		// Create Tor proxy
-		static const TorProxy torProxy(providedOptions);
+		static const TorProxy torProxy(providedOptions, wallet);
 		
 		// Create price
 		static const Price price(providedOptions, torProxy);

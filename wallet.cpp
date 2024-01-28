@@ -7,6 +7,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <vector>
+#include "./base64.h"
 #include "./common.h"
 #include "openssl/core_names.h"
 #include "openssl/evp.h"
@@ -76,6 +77,9 @@ static const char ADDRESS_PRIVATE_KEY_MAC_SEED[] = "Grinbox_seed";
 
 // Address message encryption algorithm
 static const char *ADDRESS_MESSAGE_ENCRYPTION_ALGORITHM = "CHACHA20-POLY1305";
+
+// Onion Service index
+static const uint64_t ONION_SERVICE_INDEX = 0;
 
 // Switch type
 enum class SwitchType {
@@ -1751,7 +1755,7 @@ pair<vector<uint8_t>, array<uint8_t, Crypto::CHACHA20_NONCE_SIZE>> Wallet::encry
 		throw runtime_error("Getting address private key's public key failed");
 	}
 	
-	// Check if getting X25519 private key from address private key
+	// Check if getting X25519 private key from address private key failed
 	uint8_t x25519PrivateKey[Crypto::X25519_PRIVATE_KEY_SIZE];
 	if(!Crypto::getX25519PrivateKey(x25519PrivateKey, addressPrivateKey)) {
 	
@@ -1929,7 +1933,7 @@ vector<uint8_t> Wallet::decryptAddressMessage(const uint8_t *encryptedData, cons
 		throw runtime_error("Getting address private key's public key failed");
 	}
 	
-	// Check if getting X25519 private key from address private key
+	// Check if getting X25519 private key from address private key failed
 	uint8_t x25519PrivateKey[Crypto::X25519_PRIVATE_KEY_SIZE];
 	if(!Crypto::getX25519PrivateKey(x25519PrivateKey, addressPrivateKey)) {
 	
@@ -2097,6 +2101,73 @@ vector<uint8_t> Wallet::decryptAddressMessage(const uint8_t *encryptedData, cons
 	
 	// Return data
 	return data;
+}
+
+// Get Onion Service private key
+string Wallet::getOnionServicePrivateKey() const {
+
+	// Check if getting address private key at the Onion Service Index failed
+	uint8_t addressPrivateKey[Crypto::ED25519_PRIVATE_KEY_SIZE];
+	if(!getAddressPrivateKey(addressPrivateKey, ONION_SERVICE_INDEX)) {
+	
+		// Throw exception
+		throw runtime_error("Getting address private key at the Onion Service index failed");
+	}
+	
+	// Check if address private key isn't a valid Ed25519 private key
+	if(!Crypto::isValidEd25519PrivateKey(addressPrivateKey, sizeof(addressPrivateKey))) {
+	
+		// Securely clear address private key
+		explicit_bzero(addressPrivateKey, sizeof(addressPrivateKey));
+		
+		// Throw exception
+		throw runtime_error("Address private key isn't a valid Ed25519 private key");
+	}
+	
+	// Check if getting X25519 private key from address private key failed
+	uint8_t x25519PrivateKey[Crypto::X25519_PRIVATE_KEY_SIZE + Crypto::SCALAR_SIZE];
+	if(!Crypto::getX25519PrivateKey(x25519PrivateKey, addressPrivateKey, true)) {
+	
+		// Securely clear address private key
+		explicit_bzero(addressPrivateKey, sizeof(addressPrivateKey));
+		
+		// Throw exception
+		throw runtime_error("Getting X25519 private key from address private key");
+	}
+	
+	// Securely clear address private key
+	explicit_bzero(addressPrivateKey, sizeof(addressPrivateKey));
+	
+	// Try
+	string encodedX25519PrivateKey;
+	try {
+	
+		// Base64 encode X25519 private key
+		encodedX25519PrivateKey = Base64::encode(x25519PrivateKey, sizeof(x25519PrivateKey));
+	}
+	
+	// Catch errors
+	catch(...) {
+	
+		// Securely clear X25519 private key
+		explicit_bzero(x25519PrivateKey, sizeof(x25519PrivateKey));
+		
+		// Throw
+		throw;
+	}
+	
+	// Securely clear X25519 private key
+	explicit_bzero(x25519PrivateKey, sizeof(x25519PrivateKey));
+	
+	// Return encoded X25519 private key
+	return encodedX25519PrivateKey;
+}
+
+// Get Onion Service address
+string Wallet::getOnionServiceAddress() const {
+
+	// Return the Tor payment proof address at the Onion Service Index
+	return getTorPaymentProofAddress(ONION_SERVICE_INDEX);
 }
 
 // Get address private key

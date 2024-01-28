@@ -28,19 +28,19 @@ using namespace std;
 // Constants
 
 // Default address
-static const char *DEFAULT_ADDRESS = "0.0.0.0";
+const char *PublicServer::DEFAULT_ADDRESS = "0.0.0.0";
 
 // Check if floonet
 #ifdef FLOONET
 
 	// Default port
-	static const uint16_t DEFAULT_PORT = 19011;
+	const uint16_t PublicServer::DEFAULT_PORT = 19011;
 
 // Otherwise
 #else
 
 	// Default port
-	static const uint16_t DEFAULT_PORT = 9011;
+	const uint16_t PublicServer::DEFAULT_PORT = 9011;
 #endif
 
 // Minimum TLS version
