@@ -15,6 +15,7 @@
 #include "openssl/rand.h"
 #include "openssl/ssl.h"
 #include "./private_server.h"
+#include "./public_server.h"
 
 using namespace std;
 
@@ -65,11 +66,41 @@ PrivateServer::PrivateServer(const unordered_map<char, const char *> &providedOp
 	price(price),
 	
 	// Set event base
-	eventBase(nullptr, event_base_free)
+	eventBase(nullptr, event_base_free),
+	
+	// Set using Onion Service
+	usingOnionService(providedOptions.contains('z'))
 {
 
 	// Display message
 	osyncstream(cout) << "Starting private server" << endl;
+	
+	// Get public server address from provided options
+	const char *publicServerAddress = providedOptions.contains('e') ? providedOptions.at('e') : PublicServer::DEFAULT_ADDRESS;
+	
+	// Get public server port from provided options
+	const uint16_t publicServerPort = providedOptions.contains('o') ? strtoul(providedOptions.at('o'), nullptr, Common::DECIMAL_NUMBER_BASE) : PublicServer::DEFAULT_PORT;
+	
+	// Get if using TLS public server
+	const bool usingTlsPublicServer = providedOptions.contains('t') && providedOptions.contains('y');
+	
+	// Set display public server port to if the public server port doesn't match the default server port
+	const bool displayPublicServerPort = (!usingTlsPublicServer && publicServerPort != Common::HTTP_PORT) || (usingTlsPublicServer && publicServerPort != Common::HTTPS_PORT);
+	
+	// Check if public server address is an IPv6 address
+	char temp[sizeof(in6_addr)];
+	if(inet_pton(AF_INET6, publicServerAddress, temp) == 1) {
+	
+		// Set public server URL
+		publicServerUrl = string(usingTlsPublicServer ? "https" : "http") + "://[" + publicServerAddress + ']' + (displayPublicServerPort ? ':' + to_string(publicServerPort) : "");
+	}
+	
+	// Otherwise
+	else {
+	
+		// Set public server URL
+		publicServerUrl = string(usingTlsPublicServer ? "https" : "http") + "://" + publicServerAddress + (displayPublicServerPort ? ':' + to_string(publicServerPort) : "");
+	}
 	
 	// Check if enabling threads support failed
 	if(evthread_use_pthreads()) {
@@ -514,6 +545,37 @@ void PrivateServer::run(const unordered_map<char, const char *> &providedOptions
 				// Throw exception
 				throw runtime_error("Setting private server HTTP server get price request callback failed");
 			}
+		}
+		
+		// Check if setting HTTP server get public server info request callback failed
+		if(evhttp_set_cb(httpServer.get(), "/get_public_server_info", ([](evhttp_request *request, void *argument) {
+		
+			// Get self from argument
+			PrivateServer *self = reinterpret_cast<PrivateServer *>(argument);
+			
+			// Try
+			try {
+			
+				// Handle get public server info request
+				self->handleGetPublicServerInfoRequest(request);
+			}
+			
+			// Catch errors
+			catch(...) {
+			
+				// Remove request's response's content type header
+				if(evhttp_request_get_output_headers(request)) {
+				
+					evhttp_remove_header(evhttp_request_get_output_headers(request), "Content-Type");
+				}
+				
+				// Reply with internal server error response to request
+				evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
+			}
+		}), this)) {
+		
+			// Throw exception
+			throw runtime_error("Setting private server HTTP server get public server info request callback failed");
 		}
 		
 		// Set HTTP server generic request callback
@@ -1197,8 +1259,65 @@ void PrivateServer::handleGetPriceRequest(evhttp_request *request) {
 	// Get current price
 	const string currentPrice = price.getCurrentPrice();
 	
-	// Check if adding payment info to buffer failed
+	// Check if adding price to buffer failed
 	if(evbuffer_add_printf(buffer.get(), "{\"price\":\"%s\"}", currentPrice.c_str()) == -1) {
+	
+		// Reply with internal server error response to request
+		evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
+		
+		// Return
+		return;
+	}
+	
+	// Check if setting request's response's content type header failed
+	if(evhttp_add_header(evhttp_request_get_output_headers(request), "Content-Type", "application/json; charset=utf-8")) {
+	
+		// Remove request's response's content type header
+		evhttp_remove_header(evhttp_request_get_output_headers(request), "Content-Type");
+		
+		// Reply with internal server error response to request
+		evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
+		
+		// Return
+		return;
+	}
+	
+	// Reply with ok response to request
+	evhttp_send_reply(request, HTTP_OK, nullptr, buffer.get());
+}
+
+// Handle get public server info request
+void PrivateServer::handleGetPublicServerInfoRequest(evhttp_request *request) {
+
+	// Check if setting request's response's cache control header failed
+	if(!evhttp_request_get_output_headers(request) || evhttp_add_header(evhttp_request_get_output_headers(request), "Cache-Control", "no-store, no-transform")) {
+	
+		// Remove request's response's cache control header
+		if(evhttp_request_get_output_headers(request)) {
+		
+			evhttp_remove_header(evhttp_request_get_output_headers(request), "Cache-Control");
+		}
+		
+		// Reply with internal server error response to request
+		evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
+		
+		// Return
+		return;
+	}
+	
+	// Check if creating buffer failed
+	const unique_ptr<evbuffer, decltype(&evbuffer_free)> buffer(evbuffer_new(), evbuffer_free);
+	if(!buffer) {
+	
+		// Reply with internal server error response to request
+		evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
+		
+		// Return
+		return;
+	}
+	
+	// Check if adding public server info to buffer failed
+	if(evbuffer_add_printf(buffer.get(), "{\"url\":\"%s\",\"onion_service_address\":%s}", Common::jsonEscape(publicServerUrl.c_str()).c_str(), usingOnionService ? ("\"http://" + wallet.getOnionServiceAddress() + ".onion\"").c_str() : "null") == -1) {
 	
 		// Reply with internal server error response to request
 		evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);

@@ -123,6 +123,19 @@ MWC Pay's private server allows for payments to be created, and it provides the 
    * Request: `http://localhost:9010/get_price`
    * Response: `{"price":"0.909238"}`
 
+4. `get_public_server_info()`: Returns the public server's URL and Onion Service address if it has one.
+
+   A response to this request will have one of the following status codes:
+   * `HTTP 200 OK`: The public server info is included in the response.
+   * `HTTP 500 Internal Error`: An error occurred.
+
+   Any other response status codes should be considered the equivalent of an `HTTP 400 Bad Request` status code.
+
+   Example:
+   * Request: `http://localhost:9010/get_public_server_info`
+   * Response: `{"url":"http://0.0.0.0:9011","onion_service_address":"http://52cflcqg7mr2b2mbg6x62huvut3sufz3gthjblo7yn7snfohrv54nxqd.onion"}`
+   * Response: `{"url":"http://0.0.0.0:9011","onion_service_address":null}`
+
 ### Public Server API
 MWC Pay's public server allows payments to be received, and it provides the following JSON-RPC methods accessible via the `/v2/foreign` endpoint.
 

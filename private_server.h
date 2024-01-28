@@ -56,6 +56,9 @@ class PrivateServer final {
 		// Handle get price request
 		void handleGetPriceRequest(evhttp_request *request);
 		
+		// Handle get public server info request
+		void handleGetPublicServerInfoRequest(evhttp_request *request);
+		
 		// Started
 		atomic_bool started;
 		
@@ -70,6 +73,12 @@ class PrivateServer final {
 		
 		// Event base
 		unique_ptr<event_base, decltype(&event_base_free)> eventBase;
+		
+		// Using Onion Service
+		const bool usingOnionService;
+		
+		// Public server URL
+		string publicServerUrl;
 		
 		// Main thread
 		thread mainThread;
