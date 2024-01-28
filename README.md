@@ -42,6 +42,7 @@ MWC Pay also accepts the following command line arguments:
 * `-w, --password`: Sets password to use for the wallet instead of being prompted for one
 * `-r, --recovery_passphrase`: Displays wallet's recovery passphrase
 * `-u, --root_public_key`: Displays wallet's root public key
+* `-Z, --onion_service_address`: Displays the Onion Service address that's used when creating an Onion Service to provide access to the public server
 * `-l, --show_completed_payments`: Displays all completed payments
 * `-i, --show_payment`: Displays the payment with a specified ID
 * `-s, --tor_socks_proxy_address`: Sets the external Tor SOCKS proxy address to use instead of the built-in one (example: `localhost`)

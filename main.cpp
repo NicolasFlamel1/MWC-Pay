@@ -114,6 +114,9 @@ int main(int argc, char *argv[]) {
 			// Root public key
 			{"root_public_key", no_argument, nullptr, 'u'},
 			
+			// Onion Service address
+			{"onion_service_address", no_argument, nullptr, 'Z'},
+			
 			// Show completed payments
 			{"show_completed_payments", no_argument, nullptr, 'l'},
 			
@@ -459,6 +462,22 @@ int main(int argc, char *argv[]) {
 			return EXIT_SUCCESS;
 		}
 		
+		// Get show Onion Service address from provided options
+		const bool showOnionServiceAddress = providedOptions.contains('Z');
+		
+		// Check if showing Onion Service address
+		if(showOnionServiceAddress) {
+		
+			// Display message
+			cout << "Displaying Onion Service address" << endl;
+			
+			// Display wallet's root public key
+			cout << "Onion Service address: http://" << wallet.getOnionServiceAddress() << ".onion" << endl;
+			
+			// Return success
+			return EXIT_SUCCESS;
+		}
+		
 		// Create payments
 		static Payments payments(databaseConnection);
 		
@@ -693,6 +712,7 @@ void displayOptionsHelp(char *argv[]) {
 	cout << "\t-w, --password\t\t\tSets password to use for the wallet instead of being prompted for one" << endl;
 	cout << "\t-r, --recovery_passphrase\tDisplays wallet's recovery passphrase" << endl;
 	cout << "\t-u, --root_public_key\t\tDisplays wallet's root public key" << endl;
+	cout << "\t-Z, --onion_service_address\tDisplays the Onion Service address that's used when creating an Onion Service to provide access to the public server" << endl;
 	cout << "\t-l, --show_completed_payments\tDisplays all completed payments" << endl;
 	cout << "\t-i, --show_payment\t\tDisplays the payment with a specified ID" << endl;
 	
