@@ -4,7 +4,7 @@
 An all-in-one, self-hosted MimbleWimble Coin payment processor for Linux with an emphasis on privacy.
 
 ### Installing
-MWC Pay can be built and installed with the following commands which will place a `MWC Pay` executable into your `/usr/local/bin` directory:
+MWC Pay can be built and installed with the following commands which will place an `MWC Pay` executable into your `/usr/local/bin` directory:
 ```
 make dependencies
 make
