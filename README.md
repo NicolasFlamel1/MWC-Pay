@@ -19,7 +19,7 @@ make FLOONET=1
 ### Usage
 When MWC Pay starts, it'll prompt you for a password that will be used to create or open a wallet. Then it will connect to the Tor network and sync with the MimbleWimble Coin network. After that's completed, it'll start the private and public servers which can then be used for creating and receiving payments. An example of how to directly interface with the APIs that MWC Pay provides can be found [here](https://github.com/NicolasFlamel1/MWC-Pay/tree/master/example).
 
-There's also SDKs available for [PHP](https://github.com/NicolasFlamel1/MWC-Pay-PHP-SDK) and [Node.js](https://github.com/NicolasFlamel1/MWC-Pay-Node.js-SDK) that simplify communicating with MWC Pay.
+There's also SDKs available for [PHP](https://github.com/NicolasFlamel1/MWC-Pay-PHP-SDK), [Node.js](https://github.com/NicolasFlamel1/MWC-Pay-Node.js-SDK), and [Python](https://github.com/NicolasFlamel1/MWC-Pay-Python-SDK) that simplify communicating with MWC Pay.
 
 MWC Pay consists of the following components:
 * Wallet: The wallet that receives payments.
