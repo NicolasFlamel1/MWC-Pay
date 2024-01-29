@@ -42,14 +42,14 @@ MWC Pay also accepts the following command line arguments:
 * `-w, --password`: Sets password to use for the wallet instead of being prompted for one
 * `-r, --recovery_passphrase`: Displays wallet's recovery passphrase
 * `-u, --root_public_key`: Displays wallet's root public key
-* `-Z, --onion_service_address`: Displays the Onion Service address that's used when creating an Onion Service to provide access to the public server
+* `-Z, --onion_service_address`: Displays the Onion Service address that's used when creating an Onion Service to provide access to the public server API
 * `-l, --show_completed_payments`: Displays all completed payments
 * `-i, --show_payment`: Displays the payment with a specified ID
 * `-s, --tor_socks_proxy_address`: Sets the external Tor SOCKS proxy address to use instead of the built-in one (example: `localhost`)
 * `-x, --tor_socks_proxy_port`: Sets the port to use for the external Tor SOCKS proxy address (default: `9050`)
 * `-b, --tor_bridge`: Sets the bridge to use for relaying into the Tor network (example: `obfs4 1.2.3.4:12345`)
 * `-g, --tor_transport_plugin`: Sets the transport plugin to use to forward traffic to the bridge (example: `obfs4 exec /usr/bin/obfs4proxy`)
-* `-z, --tor_create_onion_service`: Creates an Onion Service that provides access to the public server
+* `-z, --tor_create_onion_service`: Creates an Onion Service that provides access to the public server API
 * `-f, --price_update_interval`: Sets the interval in seconds for updating the price (default: `3600`)
 * `-j, --price_average_length`: Sets the number of previous prices used when determining the average price (default: `168`)
 * `-q, --price_disable`: Disables the price API

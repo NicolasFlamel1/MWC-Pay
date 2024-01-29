@@ -1306,7 +1306,7 @@ void TorProxy::displayOptionsHelp() {
 		cout << "\t-x, --tor_socks_proxy_port\tSets the port to use for the external Tor SOCKS proxy address (default: " << DEFAULT_TOR_SOCKS_PROXY_PORT << ')' << endl;
 		cout << "\t-b, --tor_bridge\t\tSets the bridge to use for relaying into the Tor network (example: obfs4 1.2.3.4:12345)" << endl;
 		cout << "\t-g, --tor_transport_plugin\tSets the transport plugin to use to forward traffic to the bridge (example: obfs4 exec /usr/bin/obfs4proxy)" << endl;
-		cout << "\t-z, --tor_create_onion_service\tCreates an Onion Service that provides access to the public server" << endl;
+		cout << "\t-z, --tor_create_onion_service\tCreates an Onion Service that provides access to the public server API" << endl;
 	#endif
 }
 

@@ -725,7 +725,7 @@ void displayOptionsHelp(char *argv[]) {
 	#ifdef TOR_ENABLE
 	
 		// Display message
-		cout << "\t-Z, --onion_service_address\tDisplays the Onion Service address that's used when creating an Onion Service to provide access to the public server" << endl;
+		cout << "\t-Z, --onion_service_address\tDisplays the Onion Service address that's used when creating an Onion Service to provide access to the public server API" << endl;
 	#endif
 	
 	// Display message
