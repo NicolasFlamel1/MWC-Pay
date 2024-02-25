@@ -95,7 +95,7 @@
 			// Display item's info
 			echo "<div>" .
 				"<p><b>" . preg_replace('/`/u', "&#x60;", htmlspecialchars($item["name"], ENT_QUOTES)) . "</b></p>" .
-				"<p>Price: " . rtrim(rtrim(sprintf("%.9f", $item["price"]), "0"), ".") . " MWC</p>" .
+				"<p>Price: " . rtrim(rtrim(sprintf("%.9F", $item["price"]), "0"), ".") . " MWC</p>" .
 				"<form method=\"post\">" .
 					"<input type=\"hidden\" name=\"id\" value=\"$id\">" .
 					"<button type=\"submit\">Add to cart</button>" .

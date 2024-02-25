@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <syncstream>
 #include "./common.h"
 #include "./consensus.h"
 #include "./payments.h"
@@ -2242,8 +2243,12 @@ void Payments::runUnsuccessfulExpiredPaymentCallbacks() {
 				// Check if sending HTTP request to the payment's expired callback was successful
 				if(Common::sendHttpRequest(paymentExpiredCallback.c_str())) {
 				
-					// Set that payment's expired callback was successful
-					setPaymentSuccessfulExpiredCallback(paymentId);
+					// Check if setting that payment's expired callback was successful was successful
+					if(setPaymentSuccessfulExpiredCallback(paymentId)) {
+					
+						// Display message
+						osyncstream(cout) << "Expired payment " << paymentId << endl;
+					}
 				}
 			}
 			

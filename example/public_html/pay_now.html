@@ -60,7 +60,7 @@
 		$createPaymentResponse = file_get_contents("http://localhost:9010/create_payment?" . http_build_query([
 		
 			// Price
-			"price" => rtrim(rtrim(sprintf("%.9f", $totalPrice), "0"), "."),
+			"price" => rtrim(rtrim(sprintf("%.9F", $totalPrice), "0"), "."),
 			
 			// Required confirmations
 			"required_confirmations" => 5,
@@ -96,7 +96,7 @@
 		}
 		
 		// Catch errors
-		catch(Exception $error) {
+		catch(\Exception $error) {
 		
 			// Return internal server error response and exit
 			http_response_code(500);
@@ -157,7 +157,7 @@
 		}
 		
 		// Catch errors
-		catch(Exception $error) {
+		catch(\Exception $error) {
 		
 			// Return internal server error response and exit
 			http_response_code(500);
@@ -196,7 +196,7 @@
 			}
 			
 			// Catch errors
-			catch(Exception $error) {
+			catch(\Exception $error) {
 			
 				// Return internal server error response and exit
 				http_response_code(500);
@@ -270,7 +270,7 @@
 </head>
 <body>
 	<h2>Payment Information</h2>
-	<p>Send <?= ($paymentInfo["price"] !== NULL) ? preg_replace('/`/u', "&#x60;", htmlspecialchars($paymentInfo["price"], ENT_QUOTES)) : "some"; ?> MWC<?= ($paymentInfo["price"] !== NULL) ? " (≈$" . sprintf("%.2f", $priceInUsdt) . ")" : ""; ?> to <a target="_blank" href="<?= preg_replace('/`/u', "&#x60;", htmlspecialchars($url, ENT_QUOTES)); ?>"><?= preg_replace('/`/u', "&#x60;", htmlspecialchars($url, ENT_QUOTES)); ?></a> to purchase the item(s)</p>
+	<p>Send <?= ($paymentInfo["price"] !== NULL) ? preg_replace('/`/u', "&#x60;", htmlspecialchars($paymentInfo["price"], ENT_QUOTES)) : "some"; ?> MWC<?= ($paymentInfo["price"] !== NULL) ? " (≈$" . sprintf("%.2F", $priceInUsdt) . ")" : ""; ?> to <a target="_blank" href="<?= preg_replace('/`/u', "&#x60;", htmlspecialchars($url, ENT_QUOTES)); ?>"><?= preg_replace('/`/u', "&#x60;", htmlspecialchars($url, ENT_QUOTES)); ?></a> to purchase the item(s)</p>
 	<img src="<?= preg_replace('/`/u', "&#x60;", htmlspecialchars($url . ".png?" . http_build_query([
 		
 		// URL
