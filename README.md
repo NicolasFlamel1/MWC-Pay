@@ -22,6 +22,8 @@ When MWC Pay starts, it'll prompt you for a password that will be used to create
 
 There's also SDKs available for [PHP](https://github.com/NicolasFlamel1/MWC-Pay-PHP-SDK), [Node.js](https://github.com/NicolasFlamel1/MWC-Pay-Node.js-SDK), and [Python](https://github.com/NicolasFlamel1/MWC-Pay-Python-SDK) that simplify communicating with MWC Pay.
 
+A [WooCommerce extension](https://github.com/NicolasFlamel1/MWC-Pay-WooCommerce-Extension) is available that allows WordPress sites to accept MimbleWimble Coin payments via MWC Pay.
+
 MWC Pay consists of the following components:
 * Wallet: The wallet that receives payments.
 * Expired monitor: Monitors when payments are expired.
