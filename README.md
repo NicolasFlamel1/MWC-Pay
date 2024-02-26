@@ -1,4 +1,5 @@
 # MWC Pay
+![MWC Pay logo](images/mwc_pay_logo_light_theme.svg)
 
 ### Description
 An all-in-one, self-hosted MimbleWimble Coin payment processor for Linux with an emphasis on privacy.
