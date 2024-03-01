@@ -283,7 +283,7 @@
 		"invert" => "false"
 	
 	]), ENT_QUOTES)); ?>" crossorigin style="width: 200px; image-rendering: crisp-edges; image-rendering: pixelated;">
-	<p>Recipient payment proof address: <?= preg_replace('/`/u', "&#x60;", htmlspecialchars($paymentInfo["recipient_payment_proof_address"], ENT_QUOTES)); ?></p>
+	<p>The transaction's recipient payment proof address is <?= preg_replace('/`/u', "&#x60;", htmlspecialchars($paymentInfo["recipient_payment_proof_address"], ENT_QUOTES)); ?></p>
 	<hr>
 	<iframe frameborder="0" src="./payment_status.html?<?= http_build_query([
 		
