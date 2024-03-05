@@ -129,7 +129,7 @@ Payments::Payments(sqlite3 *databaseConnection) :
 		"\"Expired Callback\" TEXT NULL DEFAULT(NULL) CHECK(\"Expired Callback\" IS NULL OR ((\"Expired Callback\" LIKE 'http://%' OR \"Expired Callback\" LIKE 'https://%') AND \"Expires\" IS NOT NULL)),"
 		
 		// Expired callback successful (If a response to the expired callback request was successful)
-		"\"Expired Callback Successful\" INTEGER NOT NULL DEFAULT(FALSE) CHECK(\"Expired Callback Successful\" = FALSE OR (\"Expired Callback Successful\" = TRUE AND \"Received\" IS NULL AND \"Expired Callback\" IS NOT NULL AND \"Expires\" IS NOT NULL)),"
+		"\"Expired Callback Successful\" INTEGER NOT NULL DEFAULT(FALSE) CHECK(\"Expired Callback Successful\" = FALSE OR (\"Expired Callback Successful\" = TRUE AND \"Received\" IS NULL AND \"Expires\" IS NOT NULL)),"
 		
 		// Has price (If the payment has a specified price)
 		"\"Has Price\" INTEGER NOT NULL DEFAULT(FALSE) CHECK(\"Has Price\" = FALSE OR (\"Has Price\" = TRUE AND \"Price\" IS NOT NULL))"
@@ -283,7 +283,7 @@ Payments::Payments(sqlite3 *databaseConnection) :
 	if(!expiredCallbackSuccessfulColumnExists) {
 	
 		// Check if adding expired callback successful column to payments table in the database failed
-		if(sqlite3_exec(databaseConnection, "ALTER TABLE \"Payments\" ADD COLUMN \"Expired Callback Successful\" INTEGER NOT NULL DEFAULT(FALSE) CHECK(\"Expired Callback Successful\" = FALSE OR (\"Expired Callback Successful\" = TRUE AND \"Received\" IS NULL AND \"Expired Callback\" IS NOT NULL AND \"Expires\" IS NOT NULL));", nullptr, nullptr, nullptr) != SQLITE_OK) {
+		if(sqlite3_exec(databaseConnection, "ALTER TABLE \"Payments\" ADD COLUMN \"Expired Callback Successful\" INTEGER NOT NULL DEFAULT(FALSE) CHECK(\"Expired Callback Successful\" = FALSE OR (\"Expired Callback Successful\" = TRUE AND \"Received\" IS NULL AND \"Expires\" IS NOT NULL));", nullptr, nullptr, nullptr) != SQLITE_OK) {
 		
 			// Throw exception
 			throw runtime_error("Adding expired callback successful column to payments table in the database failed");
@@ -410,7 +410,7 @@ Payments::Payments(sqlite3 *databaseConnection) :
 		
 		// Keep expired callback
 		"CREATE TRIGGER IF NOT EXISTS \"Payments Keep Expired Callback\" BEFORE UPDATE OF \"Expired Callback\" ON \"Payments\" BEGIN "
-			"SELECT RAISE(ABORT, 'received callback can''t change');"
+			"SELECT RAISE(ABORT, 'expired callback can''t change');"
 		"END;"
 		
 		// Require default expired callback successful trigger
@@ -457,8 +457,11 @@ Payments::Payments(sqlite3 *databaseConnection) :
 		// Pending confirmed callback index
 		"CREATE INDEX IF NOT EXISTS \"Payments Pending Confirmed Callback Index\" ON \"Payments\" (\"Confirmed Callback\", \"Confirmations Changed\") WHERE \"Confirmed Callback\" IS NOT NULL AND \"Confirmations Changed\" = TRUE;"
 		
-		// Unsuccessful expired callback index
-		"CREATE INDEX IF NOT EXISTS \"Payments Unsuccessful Expired Callback Index\" ON \"Payments\" (\"Received\", \"Expired Callback\", \"Expired Callback Successful\", \"Expires\") WHERE \"Received\" IS NULL AND \"Expired Callback\" IS NOT NULL AND \"Expired Callback Successful\" = FALSE AND \"Expires\" IS NOT NULL;"
+		// Remove unsuccessful expired callback index
+		"DROP INDEX IF EXISTS \"Payments Unsuccessful Expired Callback Index\";"
+		
+		// Unsuccessful expired callback index 2
+		"CREATE INDEX IF NOT EXISTS \"Payments Unsuccessful Expired Callback Index 2\" ON \"Payments\" (\"Received\", \"Expired Callback\", \"Expired Callback Successful\", \"Expires\") WHERE \"Received\" IS NULL AND \"Expired Callback Successful\" = FALSE AND \"Expires\" IS NOT NULL;"
 	
 	"", nullptr, nullptr, nullptr) != SQLITE_OK) {
 	
@@ -587,7 +590,7 @@ Payments::Payments(sqlite3 *databaseConnection) :
 	unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> getPendingConfirmedCallbackPaymentsStatementUniquePointer(getPendingConfirmedCallbackPaymentsStatement, sqlite3_finalize);
 	
 	// Check if preparing get unsuccessful expired callback payments statement
-	if(sqlite3_prepare_v3(databaseConnection, "SELECT \"ID\", \"Expired Callback\" FROM \"Payments\" WHERE \"Received\" IS NULL AND \"Expired Callback\" IS NOT NULL AND \"Expired Callback Successful\" = FALSE AND \"Expires\" IS NOT NULL AND \"Expires\" <= UNIXEPOCH('now');", -1, SQLITE_PREPARE_PERSISTENT, &getUnsuccessfulExpiredCallbackPaymentsStatement, nullptr) != SQLITE_OK) {
+	if(sqlite3_prepare_v3(databaseConnection, "SELECT \"ID\", \"Expired Callback\" FROM \"Payments\" WHERE \"Received\" IS NULL AND \"Expired Callback Successful\" = FALSE AND \"Expires\" IS NOT NULL AND \"Expires\" <= UNIXEPOCH('now');", -1, SQLITE_PREPARE_PERSISTENT, &getUnsuccessfulExpiredCallbackPaymentsStatement, nullptr) != SQLITE_OK) {
 	
 		// Throw exception
 		throw runtime_error("Preparing get unsuccessful expired callback payments statement failed");
@@ -2222,7 +2225,7 @@ void Payments::runUnsuccessfulExpiredPaymentCallbacks() {
 	try {
 
 		// Go through all unsuccessful expired callback payments
-		for(tuple<uint64_t, string> &paymentInfo : getUnsuccessfulExpiredCallbackPayments()) {
+		for(tuple<uint64_t, optional<string>> &paymentInfo : getUnsuccessfulExpiredCallbackPayments()) {
 		
 			// Try
 			try {
@@ -2231,24 +2234,35 @@ void Payments::runUnsuccessfulExpiredPaymentCallbacks() {
 				const uint64_t &paymentId = get<0>(paymentInfo);
 			
 				// Get payment's expired callback
-				string &paymentExpiredCallback = get<1>(paymentInfo);
+				optional<string> &paymentExpiredCallback = get<1>(paymentInfo);
 				
-				// Apply substitutions to payment's expired callback
-				Common::applySubstitutions(paymentExpiredCallback, {
+				// Check if payment has an expired callback
+				if(paymentExpiredCallback.has_value()) {
 				
-					// ID
-					{"__id__", to_string(paymentId)}
-				});
-		
-				// Check if sending HTTP request to the payment's expired callback was successful
-				if(Common::sendHttpRequest(paymentExpiredCallback.c_str())) {
-				
-					// Check if setting that payment's expired callback was successful was successful
-					if(setPaymentSuccessfulExpiredCallback(paymentId)) {
+					// Apply substitutions to payment's expired callback
+					Common::applySubstitutions(paymentExpiredCallback.value(), {
 					
-						// Display message
-						osyncstream(cout) << "Expired payment " << paymentId << endl;
+						// ID
+						{"__id__", to_string(paymentId)}
+					});
+			
+					// Check if sending HTTP request to the payment's expired callback was successful
+					if(Common::sendHttpRequest(paymentExpiredCallback.value().c_str())) {
+					
+						// Check if setting that payment's expired callback was successful was successful
+						if(setPaymentSuccessfulExpiredCallback(paymentId)) {
+						
+							// Display message
+							osyncstream(cout) << "Expired payment " << paymentId << endl;
+						}
 					}
+				}
+				
+				// Otherwise check if setting that payment's expired callback was successful was successful
+				else if(setPaymentSuccessfulExpiredCallback(paymentId)) {
+				
+					// Display message
+					osyncstream(cout) << "Expired payment " << paymentId << endl;
 				}
 			}
 			
@@ -2457,7 +2471,7 @@ bool Payments::setPaymentAcknowledgedConfirmedCallback(const uint64_t id) {
 }
 
 // Get unsuccessful expired callback payments
-list<tuple<uint64_t, string>> Payments::getUnsuccessfulExpiredCallbackPayments() {
+list<tuple<uint64_t, optional<string>>> Payments::getUnsuccessfulExpiredCallbackPayments() {
 
 	// Lock
 	lock_guard guard(lock);
@@ -2470,7 +2484,7 @@ list<tuple<uint64_t, string>> Payments::getUnsuccessfulExpiredCallbackPayments()
 	}
 	
 	// Initialize result
-	list<tuple<uint64_t, string>> result;
+	list<tuple<uint64_t, optional<string>>> result;
 	
 	// Go through all unsuccessful expired callback payments
 	int sqlResult;
@@ -2494,7 +2508,7 @@ list<tuple<uint64_t, string>> Payments::getUnsuccessfulExpiredCallbackPayments()
 			*reinterpret_cast<const uint64_t *>(&idStorage),
 			
 			// Expired callback
-			reinterpret_cast<const char *>(sqlite3_column_text(getUnsuccessfulExpiredCallbackPaymentsStatement, 1))
+			(sqlite3_column_type(getUnsuccessfulExpiredCallbackPaymentsStatement, 1) == SQLITE_NULL) ? nullopt : optional<string>(reinterpret_cast<const char *>(sqlite3_column_text(getUnsuccessfulExpiredCallbackPaymentsStatement, 1)))
 		);
 	}
 	

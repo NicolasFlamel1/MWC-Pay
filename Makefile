@@ -1,6 +1,6 @@
 # Program parameters
 NAME = "MWC Pay"
-VERSION = "0.4.1"
+VERSION = "1.0.0"
 CC = "g++"
 STRIP = "strip"
 CFLAGS = -I "./" -I "./gmp/dist/include" -I "./mpfr/dist/include" -I "./openssl/dist/include" -I "./libevent/dist/include" -I "./secp256k1-zkp/dist/include" -I "./sqlite/dist/include" -I "./simdjson/dist/include" -I "./zlib/dist/include" -I "./tor/src/feature/api" -I "./libzip/dist/include" -I "./croaring/dist/include" -I "./qrcodegen/c" -I "./libpng/dist/include" -static-libstdc++ -static-libgcc -O3 -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-clobbered -std=c++23 -finput-charset=UTF-8 -fexec-charset=UTF-8 -funsigned-char -ffunction-sections -fdata-sections -DPROGRAM_NAME=$(NAME) -DPROGRAM_VERSION=$(VERSION) -DDISABLE_SIGNAL_HANDLER -DPRUNE_HEADERS -DPRUNE_KERNELS -DPRUNE_RANGEPROOFS -DTOR_ENABLE

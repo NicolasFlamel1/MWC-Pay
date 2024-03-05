@@ -137,7 +137,7 @@ class Payments final {
 		bool setPaymentAcknowledgedConfirmedCallback(const uint64_t id);
 		
 		// Get unsuccessful expired callback payments
-		list<tuple<uint64_t, string>> getUnsuccessfulExpiredCallbackPayments();
+		list<tuple<uint64_t, optional<string>>> getUnsuccessfulExpiredCallbackPayments();
 		
 		// Set payment successful expired callback
 		bool setPaymentSuccessfulExpiredCallback(const uint64_t id);
