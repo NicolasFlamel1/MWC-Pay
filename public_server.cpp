@@ -202,7 +202,7 @@ bool PublicServer::validateOption(const char option, const char *value, char *ar
 		case 'e':
 		
 			// Check if public address is invalid
-			if(!value || !strlen(value)) {
+			if(!value || !strlen(value) || !Common::isValidUtf8String(value, strlen(value))) {
 			
 				// Display message
 				cout << argv[0] << ": invalid public address -- '" << (value ? value : "") << '\'' << endl;
