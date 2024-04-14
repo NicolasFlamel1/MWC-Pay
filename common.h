@@ -106,6 +106,9 @@ class Common final {
 		
 		// JSON escape
 		static string jsonEscape(const char *text);
+		
+		// Is zero timing safe
+		static bool isZeroTimingSafe(const uint8_t *data, const size_t length);
 	
 	// Private
 	private:

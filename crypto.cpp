@@ -1332,16 +1332,9 @@ bool Crypto::getX25519SharedKey(uint8_t sharedKey[SCALAR_SIZE], const uint8_t pr
 		return false;
 	}
 	
-	// Check if shared keys is zero
-	if(all_of(sharedKey, sharedKey + SCALAR_SIZE, [](const uint8_t value) {
+	// Check if shared key is zero
+	if(Common::isZeroTimingSafe(sharedKey, SCALAR_SIZE)) {
 	
-		// Return if value is zero
-		return !value;
-	})) {
-	
-		// Securely clear shared key
-		explicit_bzero(sharedKey, SCALAR_SIZE);
-		
 		// Return false
 		return false;
 	}

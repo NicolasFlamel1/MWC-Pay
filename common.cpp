@@ -571,3 +571,20 @@ string Common::jsonEscape(const char *text) {
 	// Return result
 	return result;
 }
+
+// Is zero timing safe
+bool Common::isZeroTimingSafe(const uint8_t *data, const size_t length) {
+
+	// Initialize result
+	uint8_t result = 0;
+	
+	// Go through all bytes in the data
+	for(size_t i = 0; i < length; ++i) {
+	
+		// Bitwise or the result with the byte
+		result |= data[i];
+	}
+	
+	// Return if result is zero
+	return !result;
+}
