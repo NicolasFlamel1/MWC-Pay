@@ -9,7 +9,7 @@
 #include <mutex>
 #include <unordered_map>
 #include <vector>
-#include "./node/node.h"
+#include "./node/mwc_validation_node.h"
 #include "./payments.h"
 #include "./tor_proxy.h"
 

@@ -6,7 +6,6 @@
 #include <syncstream>
 #include "./common.h"
 #include "./node.h"
-#include "./node/peer.h"
 
 using namespace std;
 
@@ -114,7 +113,7 @@ Node::Node(const unordered_map<char, const char *> &providedOptions, const TorPr
 	});
 	
 	// Set node's on transaction hash set callback
-	node.setOnTransactionHashSetCallback([this](const MwcValidationNode::MerkleMountainRange<MwcValidationNode::Header> &headers, const MwcValidationNode::Header &transactionHashSetArchiveHeader, const MwcValidationNode::MerkleMountainRange<MwcValidationNode::Kernel> &kernels, const MwcValidationNode::MerkleMountainRange<MwcValidationNode::Output> &outputs, const MwcValidationNode::MerkleMountainRange<MwcValidationNode::Rangeproof> &rangeproofs) -> bool{
+	node.setOnTransactionHashSetCallback([this](const MwcValidationNode::MerkleMountainRange<MwcValidationNode::Header> &headers, const MwcValidationNode::Header &transactionHashSetArchiveHeader, const MwcValidationNode::MerkleMountainRange<MwcValidationNode::Kernel> &kernels, const MwcValidationNode::MerkleMountainRange<MwcValidationNode::Output> &outputs, const MwcValidationNode::MerkleMountainRange<MwcValidationNode::Rangeproof> &rangeproofs) -> bool {
 	
 		// Try
 		try {
@@ -132,7 +131,7 @@ Node::Node(const unordered_map<char, const char *> &providedOptions, const TorPr
 	});
 	
 	// Set node's on block callback
-	node.setOnBlockCallback([this](const MwcValidationNode::Header &header, const MwcValidationNode::Block &block) -> bool {
+	node.setOnBlockCallback([this](const MwcValidationNode::Header &header, const MwcValidationNode::Block &block, const uint64_t oldHeight) -> bool {
 	
 		// Try
 		try {
