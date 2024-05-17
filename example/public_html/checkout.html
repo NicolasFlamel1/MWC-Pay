@@ -38,7 +38,7 @@
 			}
 			
 			// Check if index isn't valid
-			if(ctype_digit($_POST["index"]) === FALSE || array_key_exists(intval($_POST["index"]), $_SESSION["cart"]) === FALSE) {
+			if(ctype_digit($_POST["index"]) === FALSE || array_key_exists((int)$_POST["index"], $_SESSION["cart"]) === FALSE) {
 			
 				// Return bad request response and exit
 				http_response_code(400);
@@ -46,7 +46,7 @@
 			}
 			
 			// Remove item at the index from the session's cart
-			unset($_SESSION["cart"][intval($_POST["index"])]);
+			unset($_SESSION["cart"][(int)$_POST["index"]]);
 		}
 		
 		// Return redirect response and exit

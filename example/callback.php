@@ -28,7 +28,7 @@
 	foreach(explode(",", $_GET["items"]) as $id) {
 	
 		// Check if item is valid
-		if(array_key_exists(intval($id), ITEMS) === TRUE) {
+		if(array_key_exists((int)$id, ITEMS) === TRUE) {
 	
 			// Check if session's purchased doesn't exist
 			if(array_key_exists("purchased", $_SESSION) === FALSE) {
@@ -38,7 +38,7 @@
 			}
 			
 			// Append item to the session's purchased
-			$_SESSION["purchased"][] = intval($id);
+			$_SESSION["purchased"][] = (int)$id;
 		}
 	}
 ?>

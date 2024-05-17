@@ -10,7 +10,7 @@
 		if(array_key_exists("id", $_POST) === TRUE) {
 		
 			// Check if item's ID isn't valid
-			if(ctype_digit($_POST["id"]) === FALSE || array_key_exists(intval($_POST["id"]), ITEMS) === FALSE) {
+			if(ctype_digit($_POST["id"]) === FALSE || array_key_exists((int)$_POST["id"], ITEMS) === FALSE) {
 			
 				// Return bad request response and exit
 				http_response_code(400);
@@ -31,7 +31,7 @@
 			}
 			
 			// Append item's ID to the session's cart
-			$_SESSION["cart"][] = intval($_POST["id"]);
+			$_SESSION["cart"][] = (int)$_POST["id"];
 		}
 		
 		// Return redirect response and exit

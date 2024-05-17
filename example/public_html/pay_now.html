@@ -212,7 +212,7 @@
 			}
 			
 			// Get price in USDT
-			$priceInUsdt = floatval($paymentInfo["price"]) * floatval($price["price"]);
+			$priceInUsdt = (float)$paymentInfo["price"] * (float)$price["price"];
 		}
 	}
 	
