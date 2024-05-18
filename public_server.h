@@ -12,6 +12,7 @@
 #include "event2/event.h"
 #include "event2/http.h"
 #include "./payments.h"
+#include "./price.h"
 #include "./wallet.h"
 
 using namespace std;
@@ -26,7 +27,7 @@ class PublicServer final {
 	public:
 	
 		// Constructor
-		explicit PublicServer(const unordered_map<char, const char *> &providedOptions, const filesystem::path &currentDirectory, const Wallet &wallet, Payments &payments);
+		explicit PublicServer(const unordered_map<char, const char *> &providedOptions, const filesystem::path &currentDirectory, const Wallet &wallet, Payments &payments, const Price &price);
 		
 		// Destructor
 		~PublicServer();
@@ -64,8 +65,14 @@ class PublicServer final {
 		// Payments
 		Payments &payments;
 		
+		// Price
+		const Price &price;
+		
 		// Event base
 		unique_ptr<event_base, decltype(&event_base_free)> eventBase;
+		
+		// Price disable
+		const bool priceDisable;
 		
 		// Main thread
 		thread mainThread;

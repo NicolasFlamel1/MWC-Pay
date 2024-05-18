@@ -15,6 +15,9 @@ using namespace std;
 
 // Constants
 
+// Currency abbreviation
+const char *Price::CURRENCY_ABBREVIATION = "USDT";
+
 // Default update interval
 static const time_t DEFAULT_UPDATE_INTERVAL = 1 * Common::MINUTES_IN_AN_HOUR * Common::SECONDS_IN_A_MINUTE;
 
@@ -597,8 +600,8 @@ bool Price::updateCurrentPrice() {
 		return false;
 	}
 	
-	// Check if new price isn't zero
-	if(newPrice != "0") {
+	// Check if new price isn't zero and it has precision
+	if(newPrice != "0" && precision) {
 	
 		// Check if new price has a trailing zero
 		if(newPrice.back() == '0') {
@@ -705,8 +708,8 @@ bool Price::updateCurrentPrice() {
 		return false;
 	}
 	
-	// Check if result isn't zero
-	if(result != "0") {
+	// Check if result isn't zero and it has precision
+	if(result != "0" && precision) {
 	
 		// Check if result has a trailing zero
 		if(result.back() == '0') {

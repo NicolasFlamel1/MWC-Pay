@@ -59,7 +59,7 @@ static const int DEFAULT_QR_CODE_PADDING = 4;
 // Supporting function implementation
 
 // Constructor
-PublicServer::PublicServer(const unordered_map<char, const char *> &providedOptions, const filesystem::path &currentDirectory, const Wallet &wallet, Payments &payments) :
+PublicServer::PublicServer(const unordered_map<char, const char *> &providedOptions, const filesystem::path &currentDirectory, const Wallet &wallet, Payments &payments, const Price &price) :
 
 	// Set started
 	started(false),
@@ -70,8 +70,14 @@ PublicServer::PublicServer(const unordered_map<char, const char *> &providedOpti
 	// Set payments
 	payments(payments),
 	
+	// Set price
+	price(price),
+	
 	// Set event base
-	eventBase(nullptr, event_base_free)
+	eventBase(nullptr, event_base_free),
+	
+	// Set price disable
+	priceDisable(providedOptions.contains('q'))
 {
 
 	// Display message
@@ -1839,7 +1845,7 @@ void PublicServer::handleGenericRequest(evhttp_request *request) {
 																					if(!errorOccurred) {
 																				
 																						// Check if setting that payment is received failed
-																						if(!payments.setPaymentReceived(paymentId, slate.getAmount(), senderPaymentProofAddress.c_str(), excess, slate.getParticipants().front().getPublicBlindExcess(), partialSignature, publicNonceSum, kernelData.data(), kernelData.size())) {
+																						if(!payments.setPaymentReceived(paymentId, slate.getAmount(), senderPaymentProofAddress.c_str(), excess, slate.getParticipants().front().getPublicBlindExcess(), partialSignature, publicNonceSum, kernelData.data(), kernelData.size(), get<4>(paymentInfo).has_value() ? get<4>(paymentInfo).value().c_str() : (priceDisable ? nullptr : this->price.getCurrentPrice().c_str()))) {
 																						
 																							// Check if compressing and removing request's response's content encoding and vary headers failed
 																							if(compress && (evhttp_remove_header(evhttp_request_get_output_headers(request), "Content-Encoding") || evhttp_remove_header(evhttp_request_get_output_headers(request), "Vary"))) {

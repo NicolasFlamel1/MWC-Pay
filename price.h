@@ -23,6 +23,9 @@ class Price {
 	// Public
 	public:
 	
+		// Currency abbreviation
+		static const char *CURRENCY_ABBREVIATION;
+		
 		// Constructor
 		explicit Price(const unordered_map<char, const char *> &providedOptions, const TorProxy &torProxy);
 		

@@ -109,6 +109,9 @@ class Common final {
 		
 		// Is zero timing safe
 		static bool isZeroTimingSafe(const uint8_t *data, const size_t length);
+		
+		// Multiply strings
+		static string multiplyStrings(const char *firstString, const char *secondString);
 	
 	// Private
 	private:

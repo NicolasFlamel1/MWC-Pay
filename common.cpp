@@ -9,6 +9,7 @@
 #include "event2/bufferevent_ssl.h"
 #include "event2/event.h"
 #include "event2/http.h"
+#include "mpfr.h"
 #include "openssl/ssl.h"
 
 using namespace std;
@@ -587,4 +588,124 @@ bool Common::isZeroTimingSafe(const uint8_t *data, const size_t length) {
 	
 	// Return if result is zero
 	return !result;
+}
+
+// Multiply strings
+string Common::multiplyStrings(const char *firstString, const char *secondString) {
+
+	// Initialize first value
+	mpfr_t firstValue;
+	mpfr_init2(firstValue, MPFR_PRECISION);
+	
+	// Automatically free first value
+	const unique_ptr<remove_pointer<mpfr_ptr>::type, decltype(&mpfr_clear)> firstValueUniquePointer(firstValue, mpfr_clear);
+	
+	// Go through all characters in the first string
+	for(const char *i = firstString; *i; ++i) {
+	
+		// Check if first string is invalid
+		if(!isdigit(*i) && *i != '.') {
+		
+			// Throw exception
+			throw runtime_error("First string is invalid");
+		}
+	}
+	
+	// Check if setting first value is invalid
+	if(mpfr_set_str(firstValue, firstString, DECIMAL_NUMBER_BASE, MPFR_RNDN) || mpfr_sgn(firstValue) <= 0) {
+	
+		// Throw exception
+		throw runtime_error("First string is invalid");
+	}
+	
+	// Initialize precision
+	size_t precision = 0;
+	
+	// Check if first string has a decimal
+	const char *decimal = strchr(firstString, '.');
+	if(decimal) {
+	
+		// Update precision
+		precision += strlen(firstString) - (decimal + sizeof('.') - firstString);
+	}
+	
+	// Initialize second value
+	mpfr_t secondValue;
+	mpfr_init2(secondValue, MPFR_PRECISION);
+	
+	// Automatically free second value
+	const unique_ptr<remove_pointer<mpfr_ptr>::type, decltype(&mpfr_clear)> secondValueUniquePointer(secondValue, mpfr_clear);
+	
+	// Go through all characters in the second string
+	for(const char *i = secondString; *i; ++i) {
+	
+		// Check if second string is invalid
+		if(!isdigit(*i) && *i != '.') {
+		
+			// Throw exception
+			throw runtime_error("Second string is invalid");
+		}
+	}
+	
+	// Check if setting second value is invalid
+	if(mpfr_set_str(secondValue, secondString, DECIMAL_NUMBER_BASE, MPFR_RNDN) || mpfr_sgn(secondValue) <= 0) {
+	
+		// Throw exception
+		throw runtime_error("Second string is invalid");
+	}
+	
+	// Check if second string has a decimal
+	decimal = strchr(secondString, '.');
+	if(decimal) {
+	
+		// Update precision
+		precision += strlen(secondString) - (decimal + sizeof('.') - secondString);
+	}
+	
+	// Multiply first value by second value
+	mpfr_mul(firstValue, firstValue, secondValue, MPFR_RNDN);
+	
+	// Check if result is invalid
+	if(mpfr_sgn(firstValue) <= 0) {
+	
+		// Throw exception
+		throw runtime_error("Result is invalid");
+	}
+	
+	// Check if getting result size failed
+	const int resultSize = mpfr_snprintf(nullptr, 0, ("%." + to_string(precision) + "R*F").c_str(), MPFR_RNDN, firstValue);
+	if(resultSize <= 0) {
+	
+		// Throw exception
+		throw runtime_error("Getting result size failed");
+	}
+	
+	// Check if getting result failed
+	string result(resultSize, '\0');
+	if(mpfr_sprintf(result.data(), ("%." + to_string(precision) + "R*F").c_str(), MPFR_RNDN, firstValue) != resultSize) {
+	
+		// Throw exception
+		throw runtime_error("Getting result failed");
+	}
+	
+	// Check if result isn't zero and it has precision
+	if(result != "0" && precision) {
+	
+		// Check if result has a trailing zero
+		if(result.back() == '0') {
+		
+			// Remove trailing zeros from result
+			result = result.substr(0, result.find_last_not_of('0') + sizeof('0'));
+		}
+		
+		// Check if result has a trailing decimal
+		if(result.back() == '.') {
+		
+			// Remove trailing decimal from result
+			result.pop_back();
+		}
+	}
+	
+	// Return result
+	return result;
 }

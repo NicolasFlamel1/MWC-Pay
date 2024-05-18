@@ -77,6 +77,9 @@ class PrivateServer final {
 		// Using Onion Service
 		const bool usingOnionService;
 		
+		// Price disable
+		const bool priceDisable;
+		
 		// Public server URL
 		string publicServerUrl;
 		

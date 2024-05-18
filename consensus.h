@@ -26,6 +26,9 @@ class Consensus final {
 		
 		// Output commitment explorer URL
 		static const char *OUTPUT_COMMITMENT_EXPLORER_URL;
+		
+		// Currency abbreviation
+		static const char *CURRENCY_ABBREVIATION;
 };
 
 

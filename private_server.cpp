@@ -69,7 +69,11 @@ PrivateServer::PrivateServer(const unordered_map<char, const char *> &providedOp
 	eventBase(nullptr, event_base_free),
 	
 	// Set using Onion Service
-	usingOnionService(providedOptions.contains('z'))
+	usingOnionService(providedOptions.contains('z')),
+	
+	// Set price disable
+	priceDisable(providedOptions.contains('q'))
+	
 {
 
 	// Display message
@@ -508,9 +512,6 @@ void PrivateServer::run(const unordered_map<char, const char *> &providedOptions
 			// Throw exception
 			throw runtime_error("Setting private server HTTP server get payment info request callback failed");
 		}
-		
-		// Get price disable from provided options
-		const bool priceDisable = providedOptions.contains('q');
 		
 		// Check if not disabling price
 		if(!priceDisable) {
@@ -1038,7 +1039,7 @@ void PrivateServer::handleCreatePaymentRequest(evhttp_request *request) {
 	}
 	
 	// Check if creating payment failed
-	const uint64_t paymentProofIndex = payments.createPayment(id, url, price, requiredConfirmations, timeout, completedCallback, receivedCallback, confirmedCallback, expiredCallback);
+	const uint64_t paymentProofIndex = payments.createPayment(id, url, price, requiredConfirmations, timeout, completedCallback, receivedCallback, confirmedCallback, expiredCallback, (price == Payments::ANY_PRICE || priceDisable) ? nullptr : this->price.getCurrentPrice().c_str());
 	if(!paymentProofIndex) {
 	
 		// Remove request's response's content type header

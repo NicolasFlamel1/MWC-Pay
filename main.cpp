@@ -587,7 +587,7 @@ int main(int argc, char *argv[]) {
 		static const PrivateServer privateServer(providedOptions, currentDirectory, wallet, payments, price);
 		
 		// Create public server
-		static const PublicServer publicServer(providedOptions, currentDirectory, wallet, payments);
+		static const PublicServer publicServer(providedOptions, currentDirectory, wallet, payments, price);
 		
 		// Check if creating event base failed
 		const unique_ptr<event_base, decltype(&event_base_free)> eventBase(event_base_new(), event_base_free);

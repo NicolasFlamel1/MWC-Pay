@@ -65,7 +65,7 @@ class Payments final {
 		static const char *NO_EXPIRED_CALLBACK;
 		
 		// Create payment
-		uint64_t createPayment(const uint64_t id, const char *url, const uint64_t price, const uint32_t requiredConfirmations, const uint32_t timeout, const char *completedCallback, const char *receivedCallback, const char *confirmedCallback, const char *expiredCallback);
+		uint64_t createPayment(const uint64_t id, const char *url, const uint64_t price, const uint32_t requiredConfirmations, const uint32_t timeout, const char *completedCallback, const char *receivedCallback, const char *confirmedCallback, const char *expiredCallback, const char *currencyPrice);
 		
 		// Get payment info
 		tuple<uint64_t, string, optional<uint64_t>, uint64_t, bool, uint64_t, optional<uint64_t>, string> getPaymentInfo(const uint64_t id);
@@ -74,7 +74,7 @@ class Payments final {
 		tuple<uint64_t, optional<uint64_t>> getPaymentPrice(const char *url);
 		
 		// Get receiving payment for URL
-		tuple<uint64_t, uint64_t, optional<uint64_t>, optional<string>> getReceivingPaymentForUrl(const char *url);
+		tuple<uint64_t, uint64_t, optional<uint64_t>, optional<string>, optional<string>> getReceivingPaymentForUrl(const char *url);
 		
 		// Display completed payments
 		void displayCompletedPayments(const Wallet &wallet);
@@ -92,7 +92,7 @@ class Payments final {
 		list<tuple<uint64_t, uint64_t, uint64_t>> getConfirmingPayments();
 		
 		// Set payment received
-		bool setPaymentReceived(const uint64_t id, const uint64_t price, const char *senderPaymentProofAddress, const uint8_t kernelCommitment[Crypto::COMMITMENT_SIZE], const uint8_t senderPublicBlindExcess[Crypto::SECP256K1_PUBLIC_KEY_SIZE], const uint8_t recipientPartialSignature[Crypto::SECP256K1_SINGLE_SIGNER_SIGNATURE_SIZE], const uint8_t publicNonceSum[Crypto::SECP256K1_PUBLIC_KEY_SIZE], const uint8_t *kernelData, const size_t kernelDataLength);
+		bool setPaymentReceived(const uint64_t id, const uint64_t price, const char *senderPaymentProofAddress, const uint8_t kernelCommitment[Crypto::COMMITMENT_SIZE], const uint8_t senderPublicBlindExcess[Crypto::SECP256K1_PUBLIC_KEY_SIZE], const uint8_t recipientPartialSignature[Crypto::SECP256K1_SINGLE_SIGNER_SIGNATURE_SIZE], const uint8_t publicNonceSum[Crypto::SECP256K1_PUBLIC_KEY_SIZE], const uint8_t *kernelData, const size_t kernelDataLength, const char *currencyPrice);
 		
 		// Update payments with reorg
 		bool updatePaymentsWithReorg(const uint64_t reorgHeight);

@@ -205,8 +205,8 @@ pair<chrono::time_point<chrono::system_clock>, string> WhiteBit::getNewPrice() c
 		throw runtime_error("Getting WhiteBIT result failed");
 	}
 	
-	// Check if result isn't zero
-	if(result != "0") {
+	// Check if result isn't zero and it has precision
+	if(result != "0" && precision) {
 	
 		// Check if result has a trailing zero
 		if(result.back() == '0') {

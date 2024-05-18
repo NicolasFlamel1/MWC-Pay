@@ -18,6 +18,9 @@ const int Consensus::NUMBER_BASE = 1E9;
 	// Output commitment explorer URL
 	const char *Consensus::OUTPUT_COMMITMENT_EXPLORER_URL = "https://explorer.floonet.mwc.mw/#o";
 	
+	// Currency abbreviation
+	const char *Consensus::CURRENCY_ABBREVIATION = "Floonet MWC";
+	
 // Otherwise
 #else
 
@@ -26,4 +29,7 @@ const int Consensus::NUMBER_BASE = 1E9;
 
 	// Output commitment explorer URL
 	const char *Consensus::OUTPUT_COMMITMENT_EXPLORER_URL = "https://explorer.mwc.mw/#o";
+	
+	// Currency abbreviation
+	const char *Consensus::CURRENCY_ABBREVIATION = "MWC";
 #endif
