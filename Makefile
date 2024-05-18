@@ -57,7 +57,7 @@ dependencies:
 	tar -xf "./openssl-3.3.0.tar.gz"
 	rm "./openssl-3.3.0.tar.gz"
 	mv "./openssl-3.3.0" "./openssl"
-	cd "./openssl" && sed -i "s/#define BLAKE2B_DIGEST_LENGTH 64/#define BLAKE2B_DIGEST_LENGTH 32/" "./providers/implementations/include/prov/blake2.h" && sed -i "s/ossl_chacha20_initctx/ctx->tag_len = POLY1305_BLOCK_SIZE;ossl_chacha20_initctx/" "./providers/implementations/ciphers/cipher_chacha20_poly1305.c" && "./config" --prefix="$(CURDIR)/openssl/dist" --openssldir=$(shell openssl version -d | awk '{print $$2}') --libdir=lib --release no-shared && make && make install || true
+	cd "./openssl" && sed -i "s/ossl_chacha20_initctx/ctx->tag_len = POLY1305_BLOCK_SIZE;ossl_chacha20_initctx/" "./providers/implementations/ciphers/cipher_chacha20_poly1305.c" && "./config" --prefix="$(CURDIR)/openssl/dist" --openssldir=$(shell openssl version -d | awk '{print $$2}') --libdir=lib --release no-shared && make && make install || true
 	
 	# Libevent
 	wget "https://github.com/libevent/libevent/releases/download/release-2.2.1-alpha/libevent-2.2.1-alpha-dev.tar.gz"

@@ -758,7 +758,7 @@ bool Wallet::open(sqlite3 *databaseConnection, const char *providedPassword, con
 						// Tag length
 						OSSL_PARAM_construct_size_t(OSSL_CIPHER_PARAM_AEAD_TAGLEN, &tagLength),
 						
-						// end
+						// End
 						OSSL_PARAM_END
 					};
 					if(!EVP_CIPHER_CTX_get_params(cipherContext.get(), getTagLengthParameters)) {
@@ -878,7 +878,7 @@ bool Wallet::open(sqlite3 *databaseConnection, const char *providedPassword, con
 			// Digest
 			OSSL_PARAM_utf8_string(OSSL_MAC_PARAM_DIGEST, const_cast<char *>(EXTENDED_PRIVATE_KEY_MAC_DIGEST), 0),
 			
-			// end
+			// End
 			OSSL_PARAM_END
 		};
 		if(!EVP_MAC_init(macContext.get(), reinterpret_cast<const unsigned char *>(EXTENDED_PRIVATE_KEY_MAC_SEED), sizeof(EXTENDED_PRIVATE_KEY_MAC_SEED) - sizeof('\0'), setDigestParameters)) {
@@ -2209,7 +2209,7 @@ bool Wallet::getAddressPrivateKey(uint8_t addressPrivateKey[Crypto::SECP256K1_PR
 		// Digest
 		OSSL_PARAM_utf8_string(OSSL_MAC_PARAM_DIGEST, const_cast<char *>(ADDRESS_PRIVATE_KEY_MAC_DIGEST), 0),
 		
-		// end
+		// End
 		OSSL_PARAM_END
 	};
 	if(!EVP_MAC_init(macContext.get(), reinterpret_cast<const unsigned char *>(ADDRESS_PRIVATE_KEY_MAC_SEED), sizeof(ADDRESS_PRIVATE_KEY_MAC_SEED) - sizeof('\0'), setDigestParameters)) {
@@ -2327,7 +2327,7 @@ bool isValidSeed(const uint8_t seed[Mnemonic::SEED_SIZE]) {
 		// Digest
 		OSSL_PARAM_utf8_string(OSSL_MAC_PARAM_DIGEST, const_cast<char *>(EXTENDED_PRIVATE_KEY_MAC_DIGEST), 0),
 		
-		// end
+		// End
 		OSSL_PARAM_END
 	};
 	if(!EVP_MAC_init(extendedPrivateKeyMacContext.get(), reinterpret_cast<const unsigned char *>(EXTENDED_PRIVATE_KEY_MAC_SEED), sizeof(EXTENDED_PRIVATE_KEY_MAC_SEED) - sizeof('\0'), setExtendedPrivateKeyDigestParameters)) {
@@ -2430,7 +2430,7 @@ bool isValidSeed(const uint8_t seed[Mnemonic::SEED_SIZE]) {
 		// Digest
 		OSSL_PARAM_utf8_string(OSSL_MAC_PARAM_DIGEST, const_cast<char *>(ADDRESS_PRIVATE_KEY_MAC_DIGEST), 0),
 		
-		// end
+		// End
 		OSSL_PARAM_END
 	};
 	if(!EVP_MAC_init(addressPrivateKeyMacContext.get(), reinterpret_cast<const unsigned char *>(ADDRESS_PRIVATE_KEY_MAC_SEED), sizeof(ADDRESS_PRIVATE_KEY_MAC_SEED) - sizeof('\0'), setAddressPrivateKeyDigestParameters)) {

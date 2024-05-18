@@ -42,8 +42,16 @@ int blake2b(uint8_t *output, const size_t outputLength, const uint8_t *input, co
 		return 1;
 	}
 	
-	// Check if initializing digest context failed
-	if(!EVP_DigestInit_ex2(digestContext.get(), digest.get(), nullptr)) {
+	// Check if initializing digest context with the output length failed
+	const OSSL_PARAM setDigestLengthParameters[] = {
+					
+		// Digest length
+		OSSL_PARAM_construct_size_t(OSSL_DIGEST_PARAM_SIZE, const_cast<size_t *>(&outputLength)),
+		
+		// End
+		OSSL_PARAM_END
+	};
+	if(!EVP_DigestInit_ex2(digestContext.get(), digest.get(), setDigestLengthParameters)) {
 	
 		// Return one
 		return 1;
@@ -51,29 +59,6 @@ int blake2b(uint8_t *output, const size_t outputLength, const uint8_t *input, co
 	
 	// Check if hashing input failed
 	if(!EVP_DigestUpdate(digestContext.get(), input, inputLength)) {
-	
-		// Return one
-		return 1;
-	}
-	
-	// Check if getting digest length failed
-	size_t digestLength;
-	OSSL_PARAM getDigestLengthParameters[] = {
-	
-		// Digest length
-		OSSL_PARAM_construct_size_t(OSSL_DIGEST_PARAM_SIZE, &digestLength),
-		
-		// End
-		OSSL_PARAM_END
-	};
-	if(!EVP_MD_get_params(digest.get(), getDigestLengthParameters)) {
-	
-		// Return one
-		return 1;
-	}
-	
-	// Check if output length is invalid
-	if(digestLength != outputLength) {
 	
 		// Return one
 		return 1;

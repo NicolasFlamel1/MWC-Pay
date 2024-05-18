@@ -151,7 +151,7 @@ bool Crypto::deriveChildExtendedPrivateKey(uint8_t extendedPrivateKey[EXTENDED_P
 			// Digest
 			OSSL_PARAM_utf8_string(OSSL_MAC_PARAM_DIGEST, const_cast<char *>(DERIVE_CHILD_EXTENDED_PRIVATE_KEY_MAC_DIGEST), 0),
 			
-			// end
+			// End
 			OSSL_PARAM_END
 		};
 		if(!EVP_MAC_init(macContext.get(), &extendedPrivateKey[SECP256K1_PRIVATE_KEY_SIZE], CHAIN_CODE_SIZE, setDigestParameters)) {
@@ -1305,7 +1305,7 @@ bool Crypto::getX25519SharedKey(uint8_t sharedKey[SCALAR_SIZE], const uint8_t pr
 		// Padding
 		OSSL_PARAM_construct_uint(OSSL_EXCHANGE_PARAM_PAD, const_cast<unsigned int *>(&padding)),
 		
-		// end
+		// End
 		OSSL_PARAM_END
 	};
 	if(EVP_PKEY_derive_init_ex(keyContext.get(), setPaddingParameters) != 1) {
