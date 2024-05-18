@@ -32,6 +32,9 @@ const size_t Crypto::BULLETPROOF_MESSAGE_PATH_DEPTH_INDEX = 3;
 // Bulletproof message path index
 const size_t Crypto::BULLETPROOF_MESSAGE_PATH_INDEX = 4;
 
+// Poly1305 tag size
+const size_t Crypto::POLY1305_TAG_SIZE = 16;
+
 // Derive child extended private key MAC algorithm
 static const char *DERIVE_CHILD_EXTENDED_PRIVATE_KEY_MAC_ALGORITHM = "HMAC";
 
@@ -71,6 +74,9 @@ static const size_t DER_SIGNATURE_MAXIMUM_SIZE = 72;
 
 // Single-signer hash digest algorithm
 static const char *SINGLE_SIGNER_HASH_DIGEST_ALGORITHM = "BLAKE2B-512";
+
+// Single-signer hash digest size
+static const size_t SINGLE_SIGNER_HASH_DIGEST_SIZE = 32;
 
 // Ed25519 key type
 static const char *ED25519_KEY_TYPE = "ED25519";
@@ -567,8 +573,16 @@ bool Crypto::getSecp256k1PartialSingleSignerSignature(uint8_t serializedSignatur
 		return false;
 	}
 	
-	// Check if initializing digest context failed
-	if(!EVP_DigestInit_ex2(digestContext.get(), digest.get(), nullptr)) {
+	// Check if initializing digest context with the digest length failed
+	const OSSL_PARAM setDigestLengthParameters[] = {
+					
+		// Digest length
+		OSSL_PARAM_construct_size_t(OSSL_DIGEST_PARAM_SIZE, const_cast<size_t *>(&SINGLE_SIGNER_HASH_DIGEST_SIZE)),
+		
+		// End
+		OSSL_PARAM_END
+	};
+	if(!EVP_DigestInit_ex2(digestContext.get(), digest.get(), setDigestLengthParameters)) {
 	
 		// Return false
 		return false;
@@ -581,24 +595,8 @@ bool Crypto::getSecp256k1PartialSingleSignerSignature(uint8_t serializedSignatur
 		return false;
 	}
 	
-	// Check if getting digest length failed
-	size_t digestLength;
-	OSSL_PARAM getDigestLengthParameters[] = {
-	
-		// Digest length
-		OSSL_PARAM_construct_size_t(OSSL_DIGEST_PARAM_SIZE, &digestLength),
-		
-		// End
-		OSSL_PARAM_END
-	};
-	if(!EVP_MD_get_params(digest.get(), getDigestLengthParameters)) {
-	
-		// Return false
-		return false;
-	}
-	
 	// Check if getting hash failed
-	uint8_t hash[digestLength];
+	uint8_t hash[SINGLE_SIGNER_HASH_DIGEST_SIZE];
 	unsigned int hashLength;
 	if(!EVP_DigestFinal_ex(digestContext.get(), hash, &hashLength) || hashLength != sizeof(hash)) {
 	
@@ -695,8 +693,16 @@ bool Crypto::verifySecp256k1CompleteSingleSignerSignatures(const uint8_t seriali
 		return false;
 	}
 	
-	// Check if initializing digest context failed
-	if(!EVP_DigestInit_ex2(digestContext.get(), digest.get(), nullptr)) {
+	// Check if initializing digest context with the digest length failed
+	const OSSL_PARAM setDigestLengthParameters[] = {
+					
+		// Digest length
+		OSSL_PARAM_construct_size_t(OSSL_DIGEST_PARAM_SIZE, const_cast<size_t *>(&SINGLE_SIGNER_HASH_DIGEST_SIZE)),
+		
+		// End
+		OSSL_PARAM_END
+	};
+	if(!EVP_DigestInit_ex2(digestContext.get(), digest.get(), setDigestLengthParameters)) {
 	
 		// Return false
 		return false;
@@ -709,24 +715,8 @@ bool Crypto::verifySecp256k1CompleteSingleSignerSignatures(const uint8_t seriali
 		return false;
 	}
 	
-	// Check if getting digest length failed
-	size_t digestLength;
-	OSSL_PARAM getDigestLengthParameters[] = {
-	
-		// Digest length
-		OSSL_PARAM_construct_size_t(OSSL_DIGEST_PARAM_SIZE, &digestLength),
-		
-		// End
-		OSSL_PARAM_END
-	};
-	if(!EVP_MD_get_params(digest.get(), getDigestLengthParameters)) {
-	
-		// Return false
-		return false;
-	}
-	
 	// Check if getting hash failed
-	uint8_t hash[digestLength];
+	uint8_t hash[SINGLE_SIGNER_HASH_DIGEST_SIZE];
 	unsigned int hashLength;
 	if(!EVP_DigestFinal_ex(digestContext.get(), hash, &hashLength) || hashLength != sizeof(hash)) {
 	
@@ -813,8 +803,16 @@ bool Crypto::verifySecp256k1CompleteSingleSignerSignature(const uint8_t serializ
 		return false;
 	}
 	
-	// Check if initializing digest context failed
-	if(!EVP_DigestInit_ex2(digestContext.get(), digest.get(), nullptr)) {
+	// Check if initializing digest context with the digest length failed
+	const OSSL_PARAM setDigestLengthParameters[] = {
+					
+		// Digest length
+		OSSL_PARAM_construct_size_t(OSSL_DIGEST_PARAM_SIZE, const_cast<size_t *>(&SINGLE_SIGNER_HASH_DIGEST_SIZE)),
+		
+		// End
+		OSSL_PARAM_END
+	};
+	if(!EVP_DigestInit_ex2(digestContext.get(), digest.get(), setDigestLengthParameters)) {
 	
 		// Return false
 		return false;
@@ -827,24 +825,8 @@ bool Crypto::verifySecp256k1CompleteSingleSignerSignature(const uint8_t serializ
 		return false;
 	}
 	
-	// Check if getting digest length failed
-	size_t digestLength;
-	OSSL_PARAM getDigestLengthParameters[] = {
-	
-		// Digest length
-		OSSL_PARAM_construct_size_t(OSSL_DIGEST_PARAM_SIZE, &digestLength),
-		
-		// End
-		OSSL_PARAM_END
-	};
-	if(!EVP_MD_get_params(digest.get(), getDigestLengthParameters)) {
-	
-		// Return false
-		return false;
-	}
-	
 	// Check if getting hash failed
-	uint8_t hash[digestLength];
+	uint8_t hash[SINGLE_SIGNER_HASH_DIGEST_SIZE];
 	unsigned int hashLength;
 	if(!EVP_DigestFinal_ex(digestContext.get(), hash, &hashLength) || hashLength != sizeof(hash)) {
 	

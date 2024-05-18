@@ -2,7 +2,7 @@
 ![MWC Pay logo](images/mwc_pay_logo_light_theme.svg)
 
 ### Description
-An all-in-one, self-hosted MimbleWimble Coin payment processor for Linux with an emphasis on privacy.
+An all-in-one, self-hosted MimbleWimble Coin payment processor for Linux.
 
 ### Installing
 MWC Pay can be built and installed with the following commands which will place an `MWC Pay` executable into your `/usr/local/bin` directory:
@@ -26,9 +26,7 @@ A [WooCommerce extension](https://github.com/NicolasFlamel1/MWC-Pay-WooCommerce-
 
 MWC Pay consists of the following components:
 * Wallet: The wallet that receives payments.
-* Expired monitor: Monitors when payments are expired.
 * Tor proxy: The proxy that's used to route all node traffic and price requests.
-* Price: Used to determine the current price of MimbleWimble Coin.
 * Validation node: Used to determines when payments are completed and confirmed.
 * Private server: Provides the APIs to create payments, check the status of payments, and get the current price of MimbleWimble Coin.
 * Public server: Provides the APIs to received payments.
@@ -178,7 +176,7 @@ Example:
 * Response: PNG image of the QR code containing the JSON `{"Recipient Address":"http://example.com","Amount":"123.456"}`
 
 ### Privacy Considerations
-The following should be taken into consideration to ensure that one's privacy is preserved when running MWC Pay:
+The following should be taken into consideration if one wants to preserve their privacy when running MWC Pay:
 1. Don't use an address for the `-s, --tor_socks_proxy_address` command line argument that requires performing a DNS request to a third-party DNS server to resolve its IP address or requires sending packets through an unencrypted third-party network to connect to it.
 2. Don't use an address for the `-a, --private_address` command line argument that requires performing a DNS request to a third-party DNS server to resolve its IP address or requires sending packets through an unencrypted third-party network to connect to it.
 3. Don't use an address for the `-e, --public_address` command line argument that requires performing a DNS request to a third-party DNS server to resolve its IP address or requires sending packets through an unencrypted third-party network to connect to it.

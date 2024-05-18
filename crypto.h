@@ -79,6 +79,9 @@ class Crypto final {
 		// ChaCha20 nonce size
 		static const size_t CHACHA20_NONCE_SIZE = 12;
 		
+		// Poly1305 tag size
+		static const size_t POLY1305_TAG_SIZE;
+		
 		// Get blinding factor
 		static bool getBlindingFactor(uint8_t blindingFactor[BLINDING_FACTOR_SIZE], const uint8_t blind[SECP256K1_PRIVATE_KEY_SIZE], const uint64_t value);
 		

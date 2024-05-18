@@ -42,7 +42,7 @@ int blake2b(uint8_t *output, const size_t outputLength, const uint8_t *input, co
 		return 1;
 	}
 	
-	// Check if initializing digest context with the output length failed
+	// Check if initializing digest context with the digest length failed
 	const OSSL_PARAM setDigestLengthParameters[] = {
 					
 		// Digest length

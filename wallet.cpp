@@ -60,8 +60,14 @@ static const char EXTENDED_PRIVATE_KEY_MAC_SEED[] = "IamVoldemort";
 // Bulletproof hash digest algorithm
 static const char *BULLETPROOF_HASH_DIGEST_ALGORITHM = "BLAKE2B-512";
 
+// Bulletproof hash digest algorithm
+static const size_t BULLETPROOF_HASH_DIGEST_SIZE = 32;
+
 // Bulletproof nonce MAC algorithm
 static const char *BULLETPROOF_NONCE_MAC_ALGORITHM = "BLAKE2BMAC";
+
+// Bulletproof nonce MAC size
+static const size_t BULLETPROOF_NONCE_MAC_SIZE = 32;
 
 // Address private key committed value
 static const uint64_t ADDRESS_PRIVATE_KEY_COMMITTED_VALUE = 713;
@@ -1162,8 +1168,16 @@ bool Wallet::getBulletproof(uint8_t bulletproof[Crypto::BULLETPROOF_SIZE], const
 		return false;
 	}
 	
-	// Check if initializing digest context failed
-	if(!EVP_DigestInit_ex2(digestContext.get(), digest.get(), nullptr)) {
+	// Check if initializing digest context with the digest length failed
+	const OSSL_PARAM setDigestLengthParameters[] = {
+					
+		// Digest length
+		OSSL_PARAM_construct_size_t(OSSL_DIGEST_PARAM_SIZE, const_cast<size_t *>(&BULLETPROOF_HASH_DIGEST_SIZE)),
+		
+		// End
+		OSSL_PARAM_END
+	};
+	if(!EVP_DigestInit_ex2(digestContext.get(), digest.get(), setDigestLengthParameters)) {
 	
 		// Securely clear blinding factor
 		explicit_bzero(blindingFactor, sizeof(blindingFactor));
@@ -1182,27 +1196,8 @@ bool Wallet::getBulletproof(uint8_t bulletproof[Crypto::BULLETPROOF_SIZE], const
 		return false;
 	}
 	
-	// Check if getting digest length failed
-	size_t digestLength;
-	OSSL_PARAM getDigestLengthParameters[] = {
-	
-		// Digest length
-		OSSL_PARAM_construct_size_t(OSSL_DIGEST_PARAM_SIZE, &digestLength),
-		
-		// End
-		OSSL_PARAM_END
-	};
-	if(!EVP_MD_get_params(digest.get(), getDigestLengthParameters)) {
-	
-		// Securely clear blinding factor
-		explicit_bzero(blindingFactor, sizeof(blindingFactor));
-		
-		// Return false
-		return false;
-	}
-	
 	// Check if getting private hash failed
-	uint8_t privateHash[digestLength];
+	uint8_t privateHash[BULLETPROOF_HASH_DIGEST_SIZE];
 	unsigned int privateHashLength;
 	if(!EVP_DigestFinal_ex(digestContext.get(), privateHash, &privateHashLength) || privateHashLength != sizeof(privateHash)) {
 	
@@ -1244,8 +1239,16 @@ bool Wallet::getBulletproof(uint8_t bulletproof[Crypto::BULLETPROOF_SIZE], const
 		return false;
 	}
 	
-	// Check if initializing MAC context with the commitment as the key failed
-	if(!EVP_MAC_init(macContext.get(), commitment, sizeof(commitment), nullptr)) {
+	// Check if initializing MAC context with the commitment as the key and the MAC length failed
+	const OSSL_PARAM setMacLengthParameters[] = {
+	
+		// MAC length
+		OSSL_PARAM_construct_size_t(OSSL_MAC_PARAM_SIZE, const_cast<size_t *>(&BULLETPROOF_NONCE_MAC_SIZE)),
+		
+		// End
+		OSSL_PARAM_END
+	};
+	if(!EVP_MAC_init(macContext.get(), commitment, sizeof(commitment), setMacLengthParameters)) {
 	
 		// Securely clear private hash
 		explicit_bzero(privateHash, sizeof(privateHash));
@@ -1274,7 +1277,7 @@ bool Wallet::getBulletproof(uint8_t bulletproof[Crypto::BULLETPROOF_SIZE], const
 	explicit_bzero(privateHash, sizeof(privateHash));
 	
 	// Check if getting private nonce failed
-	uint8_t privateNonce[Crypto::SCALAR_SIZE];
+	uint8_t privateNonce[BULLETPROOF_NONCE_MAC_SIZE];
 	size_t privateNonceLength;
 	if(!EVP_MAC_final(macContext.get(), privateNonce, &privateNonceLength, sizeof(privateNonce)) || privateNonceLength != sizeof(privateNonce)) {
 	
@@ -1316,7 +1319,7 @@ bool Wallet::getBulletproof(uint8_t bulletproof[Crypto::BULLETPROOF_SIZE], const
 	}
 	
 	// Check if initializing digest context failed
-	if(!EVP_DigestInit_ex2(digestContext.get(), digest.get(), nullptr)) {
+	if(!EVP_DigestInit_ex2(digestContext.get(), digest.get(), setDigestLengthParameters)) {
 	
 		// Securely clear public key
 		explicit_bzero(publicKey, sizeof(publicKey));
@@ -1351,7 +1354,7 @@ bool Wallet::getBulletproof(uint8_t bulletproof[Crypto::BULLETPROOF_SIZE], const
 	explicit_bzero(publicKey, sizeof(publicKey));
 	
 	// Check if getting rewind hash failed
-	uint8_t rewindHash[digestLength];
+	uint8_t rewindHash[BULLETPROOF_HASH_DIGEST_SIZE];
 	unsigned int rewindHashLength;
 	if(!EVP_DigestFinal_ex(digestContext.get(), rewindHash, &rewindHashLength) || rewindHashLength != sizeof(rewindHash)) {
 	
@@ -1369,7 +1372,7 @@ bool Wallet::getBulletproof(uint8_t bulletproof[Crypto::BULLETPROOF_SIZE], const
 	}
 	
 	// Check if initializing MAC context with the commitment as the key failed
-	if(!EVP_MAC_init(macContext.get(), commitment, sizeof(commitment), nullptr)) {
+	if(!EVP_MAC_init(macContext.get(), commitment, sizeof(commitment), setMacLengthParameters)) {
 	
 		// Securely clear rewind hash
 		explicit_bzero(rewindHash, sizeof(rewindHash));
@@ -1404,7 +1407,7 @@ bool Wallet::getBulletproof(uint8_t bulletproof[Crypto::BULLETPROOF_SIZE], const
 	explicit_bzero(rewindHash, sizeof(rewindHash));
 	
 	// Check if getting rewind nonce failed
-	uint8_t rewindNonce[Crypto::SCALAR_SIZE];
+	uint8_t rewindNonce[BULLETPROOF_NONCE_MAC_SIZE];
 	size_t rewindNonceLength;
 	if(!EVP_MAC_final(macContext.get(), rewindNonce, &rewindNonceLength, sizeof(rewindNonce)) || rewindNonceLength != sizeof(rewindNonce)) {
 	
@@ -1843,24 +1846,8 @@ pair<vector<uint8_t>, array<uint8_t, Crypto::CHACHA20_NONCE_SIZE>> Wallet::encry
 		checksum = __builtin_bswap32(checksum);
 	#endif
 	
-	// Check if getting tag length failed
-	size_t tagLength;
-	OSSL_PARAM getTagLengthParameters[] = {
-	
-		// Tag length
-		OSSL_PARAM_construct_size_t(OSSL_CIPHER_PARAM_AEAD_TAGLEN, &tagLength),
-		
-		// End
-		OSSL_PARAM_END
-	};
-	if(!EVP_CIPHER_CTX_get_params(cipherContext.get(), getTagLengthParameters)) {
-	
-		// Throw exception
-		throw runtime_error("Getting tag length failed");
-	}
-	
 	// Check if encrypting data failed
-	vector<uint8_t> encryptedData(length + sizeof(checksum) + tagLength);
+	vector<uint8_t> encryptedData(length + sizeof(checksum) + Crypto::POLY1305_TAG_SIZE);
 	int encryptedDataLength;
 	if(!EVP_EncryptUpdate(cipherContext.get(), encryptedData.data(), &encryptedDataLength, data, length) || static_cast<size_t>(encryptedDataLength) != length) {
 	
@@ -1886,7 +1873,7 @@ pair<vector<uint8_t>, array<uint8_t, Crypto::CHACHA20_NONCE_SIZE>> Wallet::encry
 	OSSL_PARAM getTagParameters[] = {
 	
 		// Tag
-		OSSL_PARAM_construct_octet_string(OSSL_CIPHER_PARAM_AEAD_TAG, &encryptedData[length + sizeof(checksum)], tagLength),
+		OSSL_PARAM_construct_octet_string(OSSL_CIPHER_PARAM_AEAD_TAG, &encryptedData[length + sizeof(checksum)], Crypto::POLY1305_TAG_SIZE),
 		
 		// End
 		OSSL_PARAM_END
@@ -2007,34 +1994,18 @@ vector<uint8_t> Wallet::decryptAddressMessage(const uint8_t *encryptedData, cons
 	// Securely clear shared private key
 	explicit_bzero(sharedKey, sizeof(sharedKey));
 	
-	// Check if getting tag length failed
-	size_t tagLength;
-	OSSL_PARAM getTagLengthParameters[] = {
-	
-		// Tag length
-		OSSL_PARAM_construct_size_t(OSSL_CIPHER_PARAM_AEAD_TAGLEN, &tagLength),
-		
-		// End
-		OSSL_PARAM_END
-	};
-	if(!EVP_CIPHER_CTX_get_params(cipherContext.get(), getTagLengthParameters)) {
-	
-		// Throw exception
-		throw runtime_error("Getting tag length failed");
-	}
-	
 	// Check if encrypted data doesn't contain a tag
-	if(length < tagLength) {
+	if(length < Crypto::POLY1305_TAG_SIZE) {
 	
 		// Throw exception
 		throw runtime_error("Encrypted data doesn't contain a tag");
 	}
 	
 	// Get encrypted data's tag
-	const uint8_t *tag = &encryptedData[length - tagLength];
+	const uint8_t *tag = &encryptedData[length - Crypto::POLY1305_TAG_SIZE];
 
 	// Check if decrypting encrypted data failed
-	vector<uint8_t> data(length - tagLength);
+	vector<uint8_t> data(length - Crypto::POLY1305_TAG_SIZE);
 	int dataLength;
 	if(!EVP_DecryptUpdate(cipherContext.get(), data.data(), &dataLength, encryptedData, data.size()) || static_cast<size_t>(dataLength) != data.size()) {
 	
@@ -2046,7 +2017,7 @@ vector<uint8_t> Wallet::decryptAddressMessage(const uint8_t *encryptedData, cons
 	const OSSL_PARAM setTagParameters[] = {
 
 		// Tag
-		OSSL_PARAM_construct_octet_string(OSSL_CIPHER_PARAM_AEAD_TAG, const_cast<uint8_t *>(tag), tagLength),
+		OSSL_PARAM_construct_octet_string(OSSL_CIPHER_PARAM_AEAD_TAG, const_cast<uint8_t *>(tag), Crypto::POLY1305_TAG_SIZE),
 		
 		// End
 		OSSL_PARAM_END
