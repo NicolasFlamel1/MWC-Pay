@@ -59,7 +59,7 @@ const uint8_t Common::UUID_VARIANT_TWO_BITMASK_RESULT = 0b1100;
 // Hex character size
 const size_t Common::HEX_CHARACTER_SIZE = sizeof("FF") - sizeof('\0');
 
-// MPRF precision
+// MPFR precision
 const int Common::MPFR_PRECISION = 256;
 
 // Minimum TLS version

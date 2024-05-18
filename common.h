@@ -68,7 +68,7 @@ class Common final {
 		// Hex character size
 		static const size_t HEX_CHARACTER_SIZE;
 		
-		// MPRF precision
+		// MPFR precision
 		static const int MPFR_PRECISION;
 		
 		// Set error occurred
