@@ -612,7 +612,7 @@ string Common::multiplyStrings(const char *firstString, const char *secondString
 	}
 	
 	// Check if setting first value is invalid
-	if(mpfr_set_str(firstValue, firstString, DECIMAL_NUMBER_BASE, MPFR_RNDN) || mpfr_sgn(firstValue) <= 0) {
+	if(mpfr_set_str(firstValue, firstString, DECIMAL_NUMBER_BASE, MPFR_RNDN) || mpfr_sgn(firstValue) < 0) {
 	
 		// Throw exception
 		throw runtime_error("First string is invalid");
@@ -648,7 +648,7 @@ string Common::multiplyStrings(const char *firstString, const char *secondString
 	}
 	
 	// Check if setting second value is invalid
-	if(mpfr_set_str(secondValue, secondString, DECIMAL_NUMBER_BASE, MPFR_RNDN) || mpfr_sgn(secondValue) <= 0) {
+	if(mpfr_set_str(secondValue, secondString, DECIMAL_NUMBER_BASE, MPFR_RNDN) || mpfr_sgn(secondValue) < 0) {
 	
 		// Throw exception
 		throw runtime_error("Second string is invalid");
@@ -666,7 +666,7 @@ string Common::multiplyStrings(const char *firstString, const char *secondString
 	mpfr_mul(firstValue, firstValue, secondValue, MPFR_RNDN);
 	
 	// Check if result is invalid
-	if(mpfr_sgn(firstValue) <= 0) {
+	if(mpfr_sgn(firstValue) < 0) {
 	
 		// Throw exception
 		throw runtime_error("Result is invalid");
