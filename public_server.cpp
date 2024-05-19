@@ -1303,6 +1303,9 @@ void PublicServer::handleGenericRequest(evhttp_request *request) {
 						
 							// Try
 							try {
+							
+								// Get current price if needed
+								const string currentPrice = (get<4>(paymentInfo).has_value() || priceDisable) ? "" : this->price.getCurrentPrice();
 						
 								// Check if getting wallet's Tor payment proof address public key at the payment proof index failed
 								uint8_t paymentProofAddressPublicKey[Crypto::ED25519_PUBLIC_KEY_SIZE];
@@ -1845,7 +1848,7 @@ void PublicServer::handleGenericRequest(evhttp_request *request) {
 																					if(!errorOccurred) {
 																				
 																						// Check if setting that payment is received failed
-																						if(!payments.setPaymentReceived(paymentId, slate.getAmount(), senderPaymentProofAddress.c_str(), excess, slate.getParticipants().front().getPublicBlindExcess(), partialSignature, publicNonceSum, kernelData.data(), kernelData.size(), get<4>(paymentInfo).has_value() ? get<4>(paymentInfo).value().c_str() : (priceDisable ? nullptr : this->price.getCurrentPrice().c_str()))) {
+																						if(!payments.setPaymentReceived(paymentId, slate.getAmount(), senderPaymentProofAddress.c_str(), excess, slate.getParticipants().front().getPublicBlindExcess(), partialSignature, publicNonceSum, kernelData.data(), kernelData.size(), get<4>(paymentInfo).has_value() ? get<4>(paymentInfo).value().c_str() : (priceDisable ? nullptr : currentPrice.c_str()))) {
 																						
 																							// Check if compressing and removing request's response's content encoding and vary headers failed
 																							if(compress && (evhttp_remove_header(evhttp_request_get_output_headers(request), "Content-Encoding") || evhttp_remove_header(evhttp_request_get_output_headers(request), "Vary"))) {
