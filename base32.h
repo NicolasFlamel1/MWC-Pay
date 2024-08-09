@@ -4,6 +4,7 @@
 
 
 // Header files
+#include <cstdint>
 #include <string>
 #include <vector>
 

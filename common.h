@@ -7,6 +7,7 @@
 #include <atomic>
 #include <cstdint>
 #include <signal.h>
+#include <string>
 #include <unordered_map>
 
 using namespace std;

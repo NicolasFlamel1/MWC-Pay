@@ -4,6 +4,7 @@
 
 
 // Header files
+#include <array>
 #include <cstdint>
 #include <vector>
 #include "./crypto.h"

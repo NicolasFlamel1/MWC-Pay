@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <memory>
 #include <sstream>
+#include <stdexcept>
 #include "./base64.h"
 #include "./common.h"
 #include "event2/bufferevent_ssl.h"
