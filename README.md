@@ -1,5 +1,7 @@
-# MWC Pay
-![MWC Pay logo](images/mwc_pay_logo_light_theme.svg)
+# MWC Pay  
+<p align="center">
+	<img alt="MWC Pay logo" src="images/mwc_pay_logo_light_theme.svg">
+</p>  
 
 ### Description
 An all-in-one, self-hosted MimbleWimble Coin payment processor for Linux.
