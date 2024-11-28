@@ -14,6 +14,8 @@ make
 sudo make install
 ```
 
+If you don't have root access on your server, you can still run this program by running the MWC Pay executable from `"./MWC Pay"` instead of from `"/usr/local/bin/MWC Pay"`.
+
 The optional argument `FLOONET` can be used when building MWC Pay to compile it for the floonet network. For example:
 ```
 make FLOONET=1

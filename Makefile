@@ -31,6 +31,7 @@ run:
 # Make install
 install:
 	rm -f "/usr/local/bin/$(PROGRAM_NAME)"
+	mkdir -p "/usr/local/bin/"
 	cp "./$(PROGRAM_NAME)" "/usr/local/bin/"
 	chown root:root "/usr/local/bin/$(PROGRAM_NAME)"
 	chmod 755 "/usr/local/bin/$(PROGRAM_NAME)"
