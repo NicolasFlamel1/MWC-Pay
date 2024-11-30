@@ -106,13 +106,6 @@ PrivateServer::PrivateServer(const unordered_map<char, const char *> &providedOp
 		publicServerUrl = string(usingTlsPublicServer ? "https" : "http") + "://" + publicServerAddress + (displayPublicServerPort ? ':' + to_string(publicServerPort) : "");
 	}
 	
-	// Check if API key option is provided
-	if(providedOptions.contains('A')) {
-	
-		// Set API key to the provided API key
-		apiKey = providedOptions.at('A');
-	}
-	
 	// Check if enabling threads support failed
 	if(evthread_use_pthreads()) {
 	
@@ -476,6 +469,16 @@ void PrivateServer::run(const unordered_map<char, const char *> &providedOptions
 				return 0;
 				
 			}, nullptr);
+		}
+		
+		// Check if API key option is provided
+		if(providedOptions.contains('A')) {
+		
+			// Set API key to the provided API key
+			apiKey = providedOptions.at('A');
+			
+			// Display message
+			osyncstream(cout) << "Using provided private server API key: " << apiKey << endl;
 		}
 		
 		// Check if setting HTTP server create payment request callback failed
