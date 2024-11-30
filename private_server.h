@@ -59,6 +59,9 @@ class PrivateServer final {
 		// Handle get public server info request
 		void handleGetPublicServerInfoRequest(evhttp_request *request);
 		
+		// Verify API key
+		bool verifyApiKey(const evkeyvalq &queryValues) const;
+		
 		// Started
 		atomic_bool started;
 		
@@ -82,6 +85,9 @@ class PrivateServer final {
 		
 		// Public server URL
 		string publicServerUrl;
+		
+		// API key
+		string apiKey;
 		
 		// Main thread
 		thread mainThread;

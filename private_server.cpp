@@ -106,6 +106,13 @@ PrivateServer::PrivateServer(const unordered_map<char, const char *> &providedOp
 		publicServerUrl = string(usingTlsPublicServer ? "https" : "http") + "://" + publicServerAddress + (displayPublicServerPort ? ':' + to_string(publicServerPort) : "");
 	}
 	
+	// Check if API key option is provided
+	if(providedOptions.contains('A')) {
+	
+		// Set API key to the provided API key
+		apiKey = providedOptions.at('A');
+	}
+	
 	// Check if enabling threads support failed
 	if(evthread_use_pthreads()) {
 	
@@ -207,7 +214,10 @@ vector<option> PrivateServer::getOptions() {
 		{"private_certificate", required_argument, nullptr, 'c'},
 		
 		// Private key
-		{"private_key", required_argument, nullptr, 'k'}
+		{"private_key", required_argument, nullptr, 'k'},
+		
+		// Private API key
+		{"private_api_key", required_argument, nullptr, 'A'}
 	};
 }
 
@@ -219,6 +229,7 @@ void PrivateServer::displayOptionsHelp() {
 	cout << "\t-p, --private_port\t\tSets the port for the private server to listen at (default: " << DEFAULT_PORT << ')' << endl;
 	cout << "\t-c, --private_certificate\tSets the TLS certificate file for the private server" << endl;
 	cout << "\t-k, --private_key\t\tSets the TLS private key file for the private server" << endl;
+	cout << "\t-A, --private_api_key\t\tSets an API key that the private server will require all requests to contain" << endl;
 }
 
 // Validate option
@@ -287,6 +298,22 @@ bool PrivateServer::validateOption(const char option, const char *value, char *a
 			
 				// Display message
 				cout << argv[0] << ": invalid private key -- '" << (value ? value : "") << '\'' << endl;
+		
+				// Return false
+				return false;
+			}
+			
+			// Break
+			break;
+		
+		// Private API key
+		case 'A':
+		
+			// Check if private API key is invalid
+			if(!value || !strlen(value) || !Common::isValidUtf8String(reinterpret_cast<const uint8_t *>(value), strlen(value))) {
+			
+				// Display message
+				cout << argv[0] << ": invalid private API key -- '" << (value ? value : "") << '\'' << endl;
 		
 				// Return false
 				return false;
@@ -730,6 +757,16 @@ void PrivateServer::handleCreatePaymentRequest(evhttp_request *request) {
 	// Automatically free query values when done
 	const unique_ptr<evkeyvalq, decltype(&evhttp_clear_headers)> queryValuesUniquePointer(&queryValues, evhttp_clear_headers);
 	
+	// Check if verifying API key failed
+	if(!verifyApiKey(queryValues)) {
+	
+		// Reply with forbidden response to request
+		evhttp_send_reply(request, HTTP_FORBIDDEN, nullptr, nullptr);
+		
+		// Return
+		return;
+	}
+	
 	// Check if price parameter is provided
 	uint64_t price;
 	const char *priceParameter = evhttp_find_header(&queryValues, "price");
@@ -985,6 +1022,28 @@ void PrivateServer::handleCreatePaymentRequest(evhttp_request *request) {
 		expiredCallback = Payments::NO_EXPIRED_CALLBACK;
 	}
 	
+	// Check if notes parameter is provided
+	const char *notes = evhttp_find_header(&queryValues, "notes");
+	if(notes) {
+	
+		// Check if notes parameter is invalid
+		if(!*notes || strlen(notes) > Payments::MAXIMUM_NOTES_SIZE || !Common::isValidUtf8String(reinterpret_cast<const uint8_t *>(notes), strlen(notes))) {
+		
+			// Reply with bad request response to request
+			evhttp_send_reply(request, HTTP_BADREQUEST, nullptr, nullptr);
+			
+			// Return
+			return;
+		}
+	}
+	
+	// Otherwise
+	else {
+	
+		// Set notes to no notes
+		notes = Payments::NO_NOTES;
+	}
+	
 	// Check if creating random ID failed
 	uint64_t id;
 	if(RAND_bytes_ex(nullptr, reinterpret_cast<uint8_t *>(&id), sizeof(id), RAND_DRBG_STRENGTH) != 1) {
@@ -1039,7 +1098,7 @@ void PrivateServer::handleCreatePaymentRequest(evhttp_request *request) {
 	}
 	
 	// Check if creating payment failed
-	const uint64_t paymentProofIndex = payments.createPayment(id, url, price, requiredConfirmations, timeout, completedCallback, receivedCallback, confirmedCallback, expiredCallback, (price == Payments::ANY_PRICE || priceDisable) ? nullptr : this->price.getCurrentPrice().c_str());
+	const uint64_t paymentProofIndex = payments.createPayment(id, url, price, requiredConfirmations, timeout, completedCallback, receivedCallback, confirmedCallback, expiredCallback, (price == Payments::ANY_PRICE || priceDisable) ? nullptr : this->price.getCurrentPrice().c_str(), notes);
 	if(!paymentProofIndex) {
 	
 		// Remove request's response's content type header
@@ -1118,6 +1177,16 @@ void PrivateServer::handleGetPaymentInfoRequest(evhttp_request *request) {
 	
 	// Automatically free query values when done
 	const unique_ptr<evkeyvalq, decltype(&evhttp_clear_headers)> queryValuesUniquePointer(&queryValues, evhttp_clear_headers);
+	
+	// Check if verifying API key failed
+	if(!verifyApiKey(queryValues)) {
+	
+		// Reply with forbidden response to request
+		evhttp_send_reply(request, HTTP_FORBIDDEN, nullptr, nullptr);
+		
+		// Return
+		return;
+	}
 	
 	// Check if payment ID parameter is provided
 	uint64_t paymentId;
@@ -1246,6 +1315,41 @@ void PrivateServer::handleGetPriceRequest(evhttp_request *request) {
 		return;
 	}
 	
+	// Check if request doesn't have a URI
+	const evhttp_uri *uri = evhttp_request_get_evhttp_uri(request);
+	if(!uri) {
+	
+		// Reply with bad request response to request
+		evhttp_send_reply(request, HTTP_BADREQUEST, nullptr, nullptr);
+		
+		// Return
+		return;
+	}
+	
+	// Check if URI has a query string and parsing it failed
+	evkeyvalq queryValues = {};
+	if(evhttp_uri_get_query(uri) && evhttp_parse_query_str(evhttp_uri_get_query(uri), &queryValues)) {
+	
+		// Reply with bad request response to request
+		evhttp_send_reply(request, HTTP_BADREQUEST, nullptr, nullptr);
+		
+		// Return
+		return;
+	}
+	
+	// Automatically free query values when done
+	const unique_ptr<evkeyvalq, decltype(&evhttp_clear_headers)> queryValuesUniquePointer(&queryValues, evhttp_clear_headers);
+	
+	// Check if verifying API key failed
+	if(!verifyApiKey(queryValues)) {
+	
+		// Reply with forbidden response to request
+		evhttp_send_reply(request, HTTP_FORBIDDEN, nullptr, nullptr);
+		
+		// Return
+		return;
+	}
+	
 	// Check if creating buffer failed
 	const unique_ptr<evbuffer, decltype(&evbuffer_free)> buffer(evbuffer_new(), evbuffer_free);
 	if(!buffer) {
@@ -1306,6 +1410,41 @@ void PrivateServer::handleGetPublicServerInfoRequest(evhttp_request *request) {
 		return;
 	}
 	
+	// Check if request doesn't have a URI
+	const evhttp_uri *uri = evhttp_request_get_evhttp_uri(request);
+	if(!uri) {
+	
+		// Reply with bad request response to request
+		evhttp_send_reply(request, HTTP_BADREQUEST, nullptr, nullptr);
+		
+		// Return
+		return;
+	}
+	
+	// Check if URI has a query string and parsing it failed
+	evkeyvalq queryValues = {};
+	if(evhttp_uri_get_query(uri) && evhttp_parse_query_str(evhttp_uri_get_query(uri), &queryValues)) {
+	
+		// Reply with bad request response to request
+		evhttp_send_reply(request, HTTP_BADREQUEST, nullptr, nullptr);
+		
+		// Return
+		return;
+	}
+	
+	// Automatically free query values when done
+	const unique_ptr<evkeyvalq, decltype(&evhttp_clear_headers)> queryValuesUniquePointer(&queryValues, evhttp_clear_headers);
+	
+	// Check if verifying API key failed
+	if(!verifyApiKey(queryValues)) {
+	
+		// Reply with forbidden response to request
+		evhttp_send_reply(request, HTTP_FORBIDDEN, nullptr, nullptr);
+		
+		// Return
+		return;
+	}
+	
 	// Check if creating buffer failed
 	const unique_ptr<evbuffer, decltype(&evbuffer_free)> buffer(evbuffer_new(), evbuffer_free);
 	if(!buffer) {
@@ -1342,4 +1481,26 @@ void PrivateServer::handleGetPublicServerInfoRequest(evhttp_request *request) {
 	
 	// Reply with ok response to request
 	evhttp_send_reply(request, HTTP_OK, nullptr, buffer.get());
+}
+
+// Verify API key
+bool PrivateServer::verifyApiKey(const evkeyvalq &queryValues) const {
+
+	// Check if an API key is required
+	if(!apiKey.empty()) {
+	
+		// Check if request doesn't have an API key or its the wrong size
+		const char *requestApiKey = evhttp_find_header(&queryValues, "api_key");
+		if(!requestApiKey || strlen(requestApiKey) != apiKey.size()) {
+		
+			// Return false
+			return false;
+		}
+		
+		// Return if request has the correct API key
+		return !CRYPTO_memcmp(apiKey.data(), requestApiKey, apiKey.size());
+	}
+	
+	// Return true
+	return true;
 }

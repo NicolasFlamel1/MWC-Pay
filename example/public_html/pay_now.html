@@ -78,7 +78,7 @@
 				"items" => implode(",", $_SESSION["cart"])
 			])
 			
-			// Create payment API also supports received_callback, confirmed_callback, and expired_callback parameters that are not used in this example
+			// Create payment API also supports received_callback, confirmed_callback, expired_callback, notes, and api_key parameters that are not used in this example
 		]));
 		
 		if($createPaymentResponse === FALSE) {
@@ -132,6 +132,8 @@
 		
 			// Payment ID
 			"payment_id" => $_GET["payment_id"]
+			
+			// Get payment info API also supports api_key parameter that are not used in this example
 		]));
 		
 		if($getPaymentInfoResponse === FALSE) {
@@ -180,6 +182,8 @@
 		
 			// Check if getting price failed
 			$getPriceResponse = file_get_contents("http://localhost:9010/get_price");
+			
+			// Get price API also supports api_key parameter that are not used in this example
 			
 			if($getPriceResponse === FALSE) {
 			

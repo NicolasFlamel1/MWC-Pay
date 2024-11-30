@@ -64,6 +64,7 @@ MWC Pay also accepts the following command line arguments:
 * `-p, --private_port`: Sets the port for the private server to listen at (default: `9010`)
 * `-c, --private_certificate`: Sets the TLS certificate file for the private server
 * `-k, --private_key`: Sets the TLS private key file for the private server
+* `-A, --private_api_key`: Sets an API key that the private server will require all requests to contain
 * `-e, --public_address`: Sets the address for the public server to listen at (default: `0.0.0.0`)
 * `-o, --public_port`: Sets the port for the public server to listen at (default: `9011`)
 * `-t, --public_certificate`: Sets the TLS certificate file for the public server
@@ -79,7 +80,7 @@ MWC Pay also accepts the following command line arguments:
 ### Private Server API
 MWC Pay's private server allows for payments to be created, and it provides the following APIs which are accessible via HTTP GET requests with parameters provided in the request's query string:
 
-1. `create_payment(price, required_confirmations, timeout, completed_callback, received_callback, confirmed_callback, expired_callback)`: Creates a payment with the provided parameters and returns its ID, URL, and recipient payment proof address in a JSON response.
+1. `create_payment(price, required_confirmations, timeout, completed_callback, received_callback, confirmed_callback, expired_callback, notes, api_key)`: Creates a payment with the provided parameters and returns its ID, URL, and recipient payment proof address in a JSON response.
 
    The provided parameters are the following:
    * `price` (optional): The expected amount for the payment. If not provided then any amount will fulfill the payment.
@@ -89,56 +90,69 @@ MWC Pay's private server allows for payments to be created, and it provides the 
    * `received_callback` (optional): The HTTP GET request that will be performed when the payment is received. If the response status code to this request isn't `HTTP 200 OK`, then an `HTTP 500 Internal Error` response will be sent to the payment's sender when they are sending the payment. This request can't follow redirects. This request may happen multiple times despite a previous attempt receiving an `HTTP 200 OK` response status code, so make sure to prepare for this and to respond to all requests with an `HTTP 200 OK` response status code if the request has already happened. All instances of `__id__`, `__price__`, `__sender_payment_proof_address__`, `__kernel_commitment__`, and `__recipient_payment_proof_signature__` are replaced with the payment's ID, price, sender payment proof address, kernel commitment, and recipient payment proof signature respectively. If not provided then no request will be performed when the payment is received.
    * `confirmed_callback` (optional): The HTTP GET request that will be performed when the payment's number of on-chain confirmations changes and the payment isn't completed. The response status code to this request doesn't matter. This request can't follow redirects. All instances of `__id__`, and `__confirmations__` are replaced with the payment's ID and number of on-chain confirmations respectively. If not provided then no request will be performed when the payment's number of on-chain confirmations changes.
    * `expired_callback` (optional): The HTTP GET request that will be performed when the payment is expired. If the response status code to this request isn't `HTTP 200 OK`, then the same request will be made at a later time. This request can't follow redirects. This request may happen multiple times despite a previous attempt receiving an `HTTP 200 OK` response status code, so make sure to prepare for this and to respond to all requests with an `HTTP 200 OK` response status code if the request has already happened. All instances of `__id__` are replaced with the payment's ID. If not provided then no request will be performed when the payment is expired.
+   * `notes` (optional): Text to associate with the payment that will be displayed when MWC Pay performs a `-l, --show_completed_payments` or `-i, --show_payment` command.
+   * `api_key` (optional): API key that must match the `-A, --private_api_key` command line argument if it exists.
 
    A response to this request will have one of the following status codes:
    * `HTTP 200 OK`: The payment was successfully created and its ID, URL, and recipient payment proof address are included in the response.
+   * `HTTP 403 Forbidden`: API key is missing or incorrect.
    * `HTTP 500 Internal Error`: An error occurred.
 
    Any other response status codes should be considered the equivalent of an `HTTP 400 Bad Request` status code.
 
    Example:
-   * Request: `http://localhost:9010/create_payment?price=123.456&required_confirmations=5&timeout=600&completed_callback=http%3A%2F%2Fexample.com%2Fcompleted&received_callback=http%3A%2F%2Fexample.com%2Freceived&confirmed_callback=http%3A%2F%2Fexample.com%2Fconfirmed&expired_callback=http%3A%2F%2Fexample.com%2Fexpired`
+   * Request: `http://localhost:9010/create_payment?price=123.456&required_confirmations=5&timeout=600&completed_callback=http%3A%2F%2Fexample.com%2Fcompleted&received_callback=http%3A%2F%2Fexample.com%2Freceived&confirmed_callback=http%3A%2F%2Fexample.com%2Fconfirmed&expired_callback=http%3A%2F%2Fexample.com%2Fexpired&notes=test&api_key=12345`
    * Request: `http://localhost:9010/create_payment?completed_callback=http%3A%2F%2Fexample.com%2Fcompleted`
    * Response: `{"payment_id": "123", "url": "abc", "recipient_payment_proof_address": "52cflcqg7mr2b2mbg6x62huvut3sufz3gthjblo7yn7snfohrv54nxqd"}`
 
-2. `get_payment_info(payment_id)`: Returns the URL, price, required confirmations, if received, confirmations, time remaining, status, and recipient payment proof address for a payment with the provided ID.
+2. `get_payment_info(payment_id, api_key)`: Returns the URL, price, required confirmations, if received, confirmations, time remaining, status, and recipient payment proof address for a payment with the provided ID.
 
    The provided parameters are the following:
    * `payment_id`: The payment's ID.
+   * `api_key` (optional): API key that must match the `-A, --private_api_key` command line argument if it exists.
 
    A response to this request will have one of the following status codes:
    * `HTTP 200 OK`: The payment's info is included in the response.
+   * `HTTP 403 Forbidden`: API key is missing or incorrect.
    * `HTTP 500 Internal Error`: An error occurred.
 
    Any other response status codes should be considered the equivalent of an `HTTP 400 Bad Request` status code.
 
    Example:
-   * Request: `http://localhost:9010/get_payment_info?payment_id=123`
+   * Request: `http://localhost:9010/get_payment_info?payment_id=123&api_key=12345`
    * Response: `{"url": "abc", "price": "123.456", "required_confirmations": 5, "received": false, "confirmations": 0, "time_remaining": 600, "status": "Not Received", "recipient_payment_proof_address": "52cflcqg7mr2b2mbg6x62huvut3sufz3gthjblo7yn7snfohrv54nxqd"}`
    * Response: `{"url": "abc", "price": null, "required_confirmations": 1, "received": false, "confirmations": 0, "time_remaining": null, "status": "Not Received", "recipient_payment_proof_address": "52cflcqg7mr2b2mbg6x62huvut3sufz3gthjblo7yn7snfohrv54nxqd"}`
 
-3. `get_price()`: Returns the current price of MimbleWimble Coin in USDT.
+3. `get_price(api_key)`: Returns the current price of MimbleWimble Coin in USDT.
+
+   The provided parameters are the following:
+   * `api_key` (optional): API key that must match the `-A, --private_api_key` command line argument if it exists.
 
    A response to this request will have one of the following status codes:
    * `HTTP 200 OK`: The price is included in the response.
+   * `HTTP 403 Forbidden`: API key is missing or incorrect.
    * `HTTP 500 Internal Error`: An error occurred.
 
    Any other response status codes should be considered the equivalent of an `HTTP 400 Bad Request` status code.
 
    Example:
-   * Request: `http://localhost:9010/get_price`
+   * Request: `http://localhost:9010/get_price?api_key=12345`
    * Response: `{"price":"0.909238"}`
 
-4. `get_public_server_info()`: Returns the public server's URL and Onion Service address if it has one.
+4. `get_public_server_info(api_key)`: Returns the public server's URL and Onion Service address if it has one.
+
+   The provided parameters are the following:
+   * `api_key` (optional): API key that must match the `-A, --private_api_key` command line argument if it exists.
 
    A response to this request will have one of the following status codes:
    * `HTTP 200 OK`: The public server info is included in the response.
+   * `HTTP 403 Forbidden`: API key is missing or incorrect.
    * `HTTP 500 Internal Error`: An error occurred.
 
    Any other response status codes should be considered the equivalent of an `HTTP 400 Bad Request` status code.
 
    Example:
-   * Request: `http://localhost:9010/get_public_server_info`
+   * Request: `http://localhost:9010/get_public_server_info?api_key=12345`
    * Response: `{"url":"http://0.0.0.0:9011","onion_service_address":"http://52cflcqg7mr2b2mbg6x62huvut3sufz3gthjblo7yn7snfohrv54nxqd.onion"}`
    * Response: `{"url":"http://0.0.0.0:9011","onion_service_address":null}`
 
