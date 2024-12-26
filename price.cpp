@@ -7,7 +7,6 @@
 #include "mpfr.h"
 #include "./price.h"
 #include "./price_oracles/coingecko.h"
-#include "./price_oracles/tradeogre.h"
 #include "./price_oracles/whitebit.h"
 
 using namespace std;
@@ -66,9 +65,6 @@ Price::Price(const unordered_map<char, const char *> &providedOptions, const Tor
 	
 	// Add CoinGecko price oracle to list
 	priceOracles.emplace_back(make_unique<CoinGecko>(torProxy));
-	
-	// Add TradeOgre price oracle to list
-	priceOracles.emplace_back(make_unique<TradeOgre>(torProxy));
 	
 	// Add WhiteBIT price oracle to list
 	priceOracles.emplace_back(make_unique<WhiteBit>(torProxy));
