@@ -8,6 +8,7 @@
 #include "./price.h"
 #include "./price_oracles/coingecko.h"
 #include "./price_oracles/whitebit.h"
+#include "./price_oracles/xt.h"
 
 using namespace std;
 
@@ -68,6 +69,9 @@ Price::Price(const unordered_map<char, const char *> &providedOptions, const Tor
 	
 	// Add WhiteBIT price oracle to list
 	priceOracles.emplace_back(make_unique<WhiteBit>(torProxy));
+	
+	// Add XT price oracle to list
+	priceOracles.emplace_back(make_unique<Xt>(torProxy));
 	
 	// Check if creating event base failed
 	eventBase = unique_ptr<event_base, decltype(&event_base_free)>(event_base_new(), event_base_free);
