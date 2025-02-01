@@ -42,7 +42,7 @@ pair<chrono::time_point<chrono::system_clock>, string> Xt::getNewPrice() const {
 	const simdjson::dom::element json = parser.parse(response.data(), response.size() - simdjson::SIMDJSON_PADDING, false);
 	
 	// Check if response is invalid
-	if(!json["result"].is_array() || !json["result"].get_array().size()) {
+	if(!json.is_object() || !json["result"].is_array() || !json["result"].get_array().size()) {
 	
 		// Throw exception
 		throw runtime_error("XT response is invalid");
