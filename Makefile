@@ -1,6 +1,6 @@
 # Program parameters
 NAME = "MWC Pay"
-VERSION = "1.2.2"
+VERSION = "1.2.3"
 CC = "g++"
 STRIP = "strip"
 CFLAGS = -I "./" -I "./gmp/dist/include" -I "./mpfr/dist/include" -I "./openssl/dist/include" -I "./libevent/dist/include" -I "./secp256k1-zkp/dist/include" -I "./sqlite/dist/include" -I "./simdjson/dist/include" -I "./zlib/dist/include" -I "./tor/src/feature/api" -I "./libzip/dist/include" -I "./croaring/dist/include" -I "./qrcodegen/c" -I "./libpng/dist/include" -static-libstdc++ -static-libgcc -O3 -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wno-clobbered -std=c++23 -finput-charset=UTF-8 -fexec-charset=UTF-8 -funsigned-char -ffunction-sections -fdata-sections -DPROGRAM_NAME=$(NAME) -DPROGRAM_VERSION=$(VERSION) -DDISABLE_SIGNAL_HANDLER -DPRUNE_HEADERS -DPRUNE_KERNELS -DPRUNE_RANGEPROOFS -DTOR_ENABLE
@@ -47,7 +47,7 @@ dependencies:
 	cd "./gmp" && "./configure" --prefix="$(CURDIR)/gmp/dist" --disable-shared --build=x86_64-pc-linux-gnu && make && make install
 	
 	# MPFR
-	wget "https://www.mpfr.org/mpfr-current/mpfr-4.2.1.tar.gz"
+	wget "https://www.mpfr.org/mpfr-4.2.1/mpfr-4.2.1.tar.gz"
 	tar -xf "./mpfr-4.2.1.tar.gz"
 	rm "./mpfr-4.2.1.tar.gz"
 	mv "./mpfr-4.2.1" "./mpfr"
