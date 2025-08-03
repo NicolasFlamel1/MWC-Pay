@@ -576,12 +576,13 @@ void PublicServer::handleGenericRequest(evhttp_request *request) {
 	if(evhttp_request_get_command(request) == EVHTTP_REQ_OPTIONS) {
 	
 		// Check if setting request's response's allowed methods and headers CORS header failed
-		if(evhttp_add_header(evhttp_request_get_output_headers(request), "Access-Control-Allow-Methods", "GET, POST, OPTIONS") || evhttp_add_header(evhttp_request_get_output_headers(request), "Access-Control-Allow-Headers", "Content-Type, Accept-Encoding")) {
+		if(evhttp_add_header(evhttp_request_get_output_headers(request), "Access-Control-Allow-Methods", "GET, POST, OPTIONS") || evhttp_add_header(evhttp_request_get_output_headers(request), "Access-Control-Allow-Headers", "Content-Type, Accept-Encoding") || evhttp_add_header(evhttp_request_get_output_headers(request), "Access-Control-Allow-Private-Network", "true")) {
 		
 			// Remove request's response's CORS headers
 			evhttp_remove_header(evhttp_request_get_output_headers(request), "Access-Control-Allow-Origin");
 			evhttp_remove_header(evhttp_request_get_output_headers(request), "Access-Control-Allow-Methods");
 			evhttp_remove_header(evhttp_request_get_output_headers(request), "Access-Control-Allow-Headers");
+			evhttp_remove_header(evhttp_request_get_output_headers(request), "Access-Control-Allow-Private-Network");
 			
 			// Reply with internal server error response to request
 			evhttp_send_reply(request, HTTP_INTERNAL, nullptr, nullptr);
