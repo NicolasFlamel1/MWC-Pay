@@ -1,6 +1,6 @@
 # MWC Pay  
 <p align="center">
-	<img alt="MWC Pay logo" src="images/mwc_pay_logo_light_theme.svg">
+	<img alt="MWC Pay logo" src="images/mwc_pay_logo_light_theme.svg" width="500px">
 </p>  
 
 ### Description
