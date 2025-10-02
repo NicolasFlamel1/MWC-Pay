@@ -31,7 +31,7 @@ using namespace std;
 const char *PublicServer::DEFAULT_ADDRESS = "0.0.0.0";
 
 // Check if floonet
-#ifdef FLOONET
+#ifdef ENABLE_FLOONET
 
 	// Default port
 	const uint16_t PublicServer::DEFAULT_PORT = 19011;

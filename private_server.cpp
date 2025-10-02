@@ -26,7 +26,7 @@ using namespace std;
 static const char *DEFAULT_ADDRESS = "localhost";
 
 // Check if floonet
-#ifdef FLOONET
+#ifdef ENABLE_FLOONET
 
 	// Default port
 	static const uint16_t DEFAULT_PORT = 19010;

@@ -623,7 +623,7 @@ bool Price::updateCurrentPrice() {
 	}
 	
 	// Check if not floonet
-	#ifndef FLOONET
+	#ifndef ENABLE_FLOONET
 	
 		// Check if new price is zero
 		if(newPrice == "0") {
@@ -731,7 +731,7 @@ bool Price::updateCurrentPrice() {
 	}
 	
 	// Check if not floonet
-	#ifndef FLOONET
+	#ifndef ENABLE_FLOONET
 	
 		// Check if result is zero
 		if(result == "0") {

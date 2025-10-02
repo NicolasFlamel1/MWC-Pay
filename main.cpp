@@ -115,7 +115,7 @@ int main(int argc, char *argv[]) {
 			{"root_public_key", no_argument, nullptr, 'u'},
 			
 			// Check if Tor is enabled
-			#ifdef TOR_ENABLE
+			#ifdef ENABLE_TOR
 			
 				// Onion Service address
 				{"onion_service_address", no_argument, nullptr, 'Z'},
@@ -369,7 +369,7 @@ int main(int argc, char *argv[]) {
 		}
 		
 		// Check if floonet
-		#ifdef FLOONET
+		#ifdef ENABLE_FLOONET
 		
 			// Display message
 			cout << "Network type: floonet" << endl;
@@ -467,7 +467,7 @@ int main(int argc, char *argv[]) {
 		}
 		
 		// Check if Tor is enabled
-		#ifdef TOR_ENABLE
+		#ifdef ENABLE_TOR
 		
 			// Get show Onion Service address from provided options
 			const bool showOnionServiceAddress = providedOptions.contains('Z');
@@ -722,7 +722,7 @@ void displayOptionsHelp(char *argv[]) {
 	cout << "\t-u, --root_public_key\t\tDisplays wallet's root public key" << endl;
 	
 	// Check if Tor is enabled
-	#ifdef TOR_ENABLE
+	#ifdef ENABLE_TOR
 	
 		// Display message
 		cout << "\t-Z, --onion_service_address\tDisplays the Onion Service address that's used when creating an Onion Service to provide access to the public server API" << endl;
@@ -797,7 +797,7 @@ bool goToApplicationDirectory(const unordered_map<char, const char *> &providedO
 		filesystem::create_directory(applicationDirectory);
 		
 		// Check if floonet
-		#ifdef FLOONET
+		#ifdef ENABLE_FLOONET
 		
 			// Create network directory in the application directory
 			filesystem::create_directory(applicationDirectory / "floonet");

@@ -89,7 +89,7 @@ pair<chrono::time_point<chrono::system_clock>, string> PriceOracle::getPrice() c
 	try {
 	
 		// Check if floonet
-		#ifdef FLOONET
+		#ifdef ENABLE_FLOONET
 		
 			// Get new price
 			const pair<chrono::time_point<chrono::system_clock>, string> newPrice(chrono::system_clock::now(), "0");
@@ -152,7 +152,7 @@ unique_ptr<evhttp_connection, decltype(&evhttp_connection_free)> PriceOracle::cr
 	}
 	
 	// Check if Tor is enabled
-	#ifdef TOR_ENABLE
+	#ifdef ENABLE_TOR
 	
 		// Check if creating SOCKS buffer failed
 		const unique_ptr<bufferevent, decltype(&bufferevent_free)> socksBuffer(bufferevent_socket_new(eventBase.get(), -1, BEV_OPT_CLOSE_ON_FREE | BEV_OPT_DEFER_CALLBACKS), bufferevent_free);
@@ -392,7 +392,7 @@ unique_ptr<evhttp_connection, decltype(&evhttp_connection_free)> PriceOracle::cr
 	}
 	
 	// Check if Tor is enabled
-	#ifdef TOR_ENABLE
+	#ifdef ENABLE_TOR
 	
 		// Check if creating connection from TLS buffer failed
 		unique_ptr<evhttp_connection, decltype(&evhttp_connection_free)> connection(evhttp_connection_base_bufferevent_new(eventBase.get(), nullptr, tlsBuffer.get(), torProxy.getSocksAddress().c_str(), stoull(torProxy.getSocksPort())), evhttp_connection_free);

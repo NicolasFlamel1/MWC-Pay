@@ -16,7 +16,7 @@ using namespace std;
 static const char *STATE_FILE = "node_state.bin";
 
 // Check if floonet
-#ifdef FLOONET
+#ifdef ENABLE_FLOONET
 
 	// Default node DNS seed port
 	static const char *DEFAULT_NODE_DNS_SEED_PORT = "13414";
@@ -55,6 +55,13 @@ Node::Node(const unordered_map<char, const char *> &providedOptions, const TorPr
 	
 		// Throw exception
 		throw runtime_error("No address provided for the node DNS seed port");
+	}
+	
+	// Check if initializing MWC validation node common failed
+	if(!MwcValidationNode::Common::initialize()) {
+	
+		// Display message
+		throw runtime_error("Initializing MWC validation node common failed");
 	}
 	
 	// Check if state file exists
@@ -113,7 +120,7 @@ Node::Node(const unordered_map<char, const char *> &providedOptions, const TorPr
 	});
 	
 	// Set node's on transaction hash set callback
-	node.setOnTransactionHashSetCallback([this](const MwcValidationNode::MerkleMountainRange<MwcValidationNode::Header> &headers, const MwcValidationNode::Header &transactionHashSetArchiveHeader, const MwcValidationNode::MerkleMountainRange<MwcValidationNode::Kernel> &kernels, const MwcValidationNode::MerkleMountainRange<MwcValidationNode::Output> &outputs, const MwcValidationNode::MerkleMountainRange<MwcValidationNode::Rangeproof> &rangeproofs) -> bool {
+	node.setOnTransactionHashSetCallback([this](const MwcValidationNode::MerkleMountainRange<MwcValidationNode::Header> &headers, const MwcValidationNode::Header &transactionHashSetArchiveHeader, const MwcValidationNode::MerkleMountainRange<MwcValidationNode::Kernel> &kernels, const MwcValidationNode::MerkleMountainRange<MwcValidationNode::Output> &outputs, const MwcValidationNode::MerkleMountainRange<MwcValidationNode::Rangeproof> &rangeproofs, const uint64_t oldHeight) -> bool {
 	
 		// Try
 		try {
@@ -694,7 +701,7 @@ vector<option> Node::getOptions() {
 void Node::displayOptionsHelp() {
 
 	// Check if floonet
-	#ifdef FLOONET
+	#ifdef ENABLE_FLOONET
 	
 		// Display message
 		cout << "\t-n, --node_dns_seed_address\tSets the node DNS seed address to use instead of the default ones (example: seed1.mwc.mw)" << endl;

@@ -9,7 +9,7 @@ using namespace std;
 // Constants
 
 // Check if floonet
-#ifdef FLOONET
+#ifdef ENABLE_FLOONET
 
 	// Address version
 	static const uint8_t ADDRESS_VERSION[] = {1, 121};

@@ -17,7 +17,7 @@ using namespace std;
 // Constants
 
 // Check if Tor is enabled
-#ifdef TOR_ENABLE
+#ifdef ENABLE_TOR
 
 	// Data directory size
 	static const size_t DATA_DIRECTORY_SIZE = 20;
@@ -43,7 +43,7 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions, con
 {
 
 	// Check if Tor is enabled
-	#ifdef TOR_ENABLE
+	#ifdef ENABLE_TOR
 	
 		// Display message
 		osyncstream(cout) << "Starting Tor proxy" << endl;
@@ -1083,7 +1083,7 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions, con
 TorProxy::~TorProxy() {
 
 	// Check if Tor is enabled
-	#ifdef TOR_ENABLE
+	#ifdef ENABLE_TOR
 	
 		// Display message
 		osyncstream(cout) << "Closing Tor proxy" << endl;
@@ -1275,7 +1275,7 @@ vector<option> TorProxy::getOptions() {
 	return {
 	
 		// Check if Tor is enabled
-		#ifdef TOR_ENABLE
+		#ifdef ENABLE_TOR
 		
 			// Tor SOCKS proxy address
 			{"tor_socks_proxy_address", required_argument, nullptr, 's'},
@@ -1299,7 +1299,7 @@ vector<option> TorProxy::getOptions() {
 void TorProxy::displayOptionsHelp() {
 
 	// Check if Tor is enabled
-	#ifdef TOR_ENABLE
+	#ifdef ENABLE_TOR
 	
 		// Display message
 		cout << "\t-s, --tor_socks_proxy_address\tSets the external Tor SOCKS proxy address to use instead of the built-in one (example: localhost)" << endl;
@@ -1314,7 +1314,7 @@ void TorProxy::displayOptionsHelp() {
 bool TorProxy::validateOption(const char option, const char *value, char *argv[]) {
 
 	// Check if Tor is enabled
-	#ifdef TOR_ENABLE
+	#ifdef ENABLE_TOR
 	
 		// Check option
 		switch(option) {

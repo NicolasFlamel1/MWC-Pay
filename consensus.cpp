@@ -10,7 +10,7 @@ using namespace std;
 const int Consensus::NUMBER_BASE = 1E9;
 
 // Check if floonet
-#ifdef FLOONET
+#ifdef ENABLE_FLOONET
 
 	// Kernel commitment explorer URL
 	const char *Consensus::KERNEL_COMMITMENT_EXPLORER_URL = "https://explorer.floonet.mwc.mw/#k";

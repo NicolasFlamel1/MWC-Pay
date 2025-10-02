@@ -106,7 +106,7 @@ Slate::Slate(const uint8_t *data, const size_t length) {
 	memcpy(this->id, id.data(), id.size());
 	
 	// Check if floonet
-	#ifdef FLOONET
+	#ifdef ENABLE_FLOONET
 	
 		// Check if is mainnet is invalid
 		if(bitReader.getBits(COMPRESSED_BOOLEAN_SIZE)) {
@@ -414,7 +414,7 @@ vector<uint8_t> Slate::serialize() const {
 	bitWriter.setBytes(id, sizeof(id));
 	
 	// Check if floonet
-	#ifdef FLOONET
+	#ifdef ENABLE_FLOONET
 	
 		// Write is mainnet
 		bitWriter.setBits(false, COMPRESSED_BOOLEAN_SIZE);
