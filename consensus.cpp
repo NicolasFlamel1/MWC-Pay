@@ -1,8 +1,6 @@
 // Header files
 #include "./consensus.h"
 
-using namespace std;
-
 
 // Constants
 

@@ -51,7 +51,8 @@ string Base58::encode(const uint8_t *data, const size_t length) {
 	}
 
 	// Create buffer
-	uint8_t buffer[(length - numberOfLeadingZeros) * SIZE_PERCENT_INCREASE / 100 + 1] = {};
+	uint8_t buffer[(length - numberOfLeadingZeros) * SIZE_PERCENT_INCREASE / 100 + 1];
+	memset(buffer, 0, sizeof(buffer));
 
 	// Go through all bytes in the data after the leading zeros
 	size_t currentLength = 0;
@@ -137,7 +138,8 @@ vector<uint8_t> Base58::decode(const char *data) {
 	}
 
 	// Create buffer
-	uint8_t buffer[(length - numberOfLeadingZeros) * SIZE_PERCENT_DECREASE / 1000 + 1] = {};
+	uint8_t buffer[(length - numberOfLeadingZeros) * SIZE_PERCENT_DECREASE / 1000 + 1];
+	memset(buffer, 0, sizeof(buffer));
 
 	// Go through all characters in the data after the leading alphabet zeros
 	size_t currentLength = 0;

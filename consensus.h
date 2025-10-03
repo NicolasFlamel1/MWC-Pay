@@ -3,10 +3,6 @@
 #define CONSENSUS_H
 
 
-// Header files
-using namespace std;
-
-
 // Classes
 
 // Consensus class

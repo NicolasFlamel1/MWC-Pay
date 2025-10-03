@@ -27,6 +27,9 @@ class PriceOracle {
 		// Constructor
 		explicit PriceOracle(const TorProxy &torProxy);
 		
+		// Destructor
+		virtual ~PriceOracle() = default;
+		
 		// Get price
 		pair<chrono::time_point<chrono::system_clock>, string> getPrice() const;
 	

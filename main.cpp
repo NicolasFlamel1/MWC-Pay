@@ -264,8 +264,8 @@ int main(int argc, char *argv[]) {
 								// Display message
 								cout << argv[0] << ": invalid payment ID -- '" << (optarg ? optarg : "") << '\'' << endl;
 						
-								// Return false
-								return false;
+								// Return failure
+								return EXIT_FAILURE;
 							}
 							
 							// Break

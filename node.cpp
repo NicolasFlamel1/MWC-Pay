@@ -57,13 +57,6 @@ Node::Node(const unordered_map<char, const char *> &providedOptions, const TorPr
 		throw runtime_error("No address provided for the node DNS seed port");
 	}
 	
-	// Check if initializing MWC validation node common failed
-	if(!MwcValidationNode::Common::initialize()) {
-	
-		// Display message
-		throw runtime_error("Initializing MWC validation node common failed");
-	}
-	
 	// Check if state file exists
 	if(filesystem::exists(STATE_FILE)) {
 	
@@ -106,21 +99,21 @@ Node::Node(const unordered_map<char, const char *> &providedOptions, const TorPr
 	
 	// Set node's on synced callback
 	atomic_bool isSynced(false);
-	node.setOnSyncedCallback([&isSynced]() {
+	node.setOnSyncedCallback([&isSynced](MwcValidationNode::Node &node) {
 	
 		// Set is synced
 		isSynced.store(true);
 	});
 	
 	// Set node's on error callback
-	node.setOnErrorCallback([this]() {
+	node.setOnErrorCallback([this](MwcValidationNode::Node &node) {
 	
 		// Run node failed
 		nodeFailed();
 	});
 	
 	// Set node's on transaction hash set callback
-	node.setOnTransactionHashSetCallback([this](const MwcValidationNode::MerkleMountainRange<MwcValidationNode::Header> &headers, const MwcValidationNode::Header &transactionHashSetArchiveHeader, const MwcValidationNode::MerkleMountainRange<MwcValidationNode::Kernel> &kernels, const MwcValidationNode::MerkleMountainRange<MwcValidationNode::Output> &outputs, const MwcValidationNode::MerkleMountainRange<MwcValidationNode::Rangeproof> &rangeproofs, const uint64_t oldHeight) -> bool {
+	node.setOnTransactionHashSetCallback([this](MwcValidationNode::Node &node, const MwcValidationNode::MerkleMountainRange<MwcValidationNode::Header> &headers, const MwcValidationNode::Header &transactionHashSetArchiveHeader, const MwcValidationNode::MerkleMountainRange<MwcValidationNode::Kernel> &kernels, const MwcValidationNode::MerkleMountainRange<MwcValidationNode::Output> &outputs, const MwcValidationNode::MerkleMountainRange<MwcValidationNode::Rangeproof> &rangeproofs, const uint64_t oldHeight) -> bool {
 	
 		// Try
 		try {
@@ -138,7 +131,7 @@ Node::Node(const unordered_map<char, const char *> &providedOptions, const TorPr
 	});
 	
 	// Set node's on block callback
-	node.setOnBlockCallback([this](const MwcValidationNode::Header &header, const MwcValidationNode::Block &block, const uint64_t oldHeight) -> bool {
+	node.setOnBlockCallback([this](MwcValidationNode::Node &node, const MwcValidationNode::Header &header, const MwcValidationNode::Block &block, const uint64_t oldHeight) -> bool {
 	
 		// Try
 		try {
@@ -253,7 +246,7 @@ Node::Node(const unordered_map<char, const char *> &providedOptions, const TorPr
 		if(!errorOccurred) {
 		
 			// Go through all of the node's peers
-			for(list<MwcValidationNode::Peer>::iterator i = node.getPeers().begin(); i != node.getPeers().end(); ++i) {
+			for(list<MwcValidationNode::Peer>::iterator i = node.getPeersBegin(); i != node.getPeersEnd(); ++i) {
 			
 				// Stop peer
 				i->stop();
@@ -338,7 +331,7 @@ Node::Node(const unordered_map<char, const char *> &providedOptions, const TorPr
 			if(!errorOccurred) {
 			
 				// Go through all of the node's peers
-				for(list<MwcValidationNode::Peer>::iterator j = node.getPeers().begin(); j != node.getPeers().end(); ++j) {
+				for(list<MwcValidationNode::Peer>::iterator j = node.getPeersBegin(); j != node.getPeersEnd(); ++j) {
 				
 					// Stop peer
 					j->stop();
@@ -450,7 +443,7 @@ Node::Node(const unordered_map<char, const char *> &providedOptions, const TorPr
 			if(!errorOccurred) {
 			
 				// Go through all of the node's peers
-				for(list<MwcValidationNode::Peer>::iterator i = node.getPeers().begin(); i != node.getPeers().end(); ++i) {
+				for(list<MwcValidationNode::Peer>::iterator i = node.getPeersBegin(); i != node.getPeersEnd(); ++i) {
 				
 					// Stop peer
 					i->stop();
@@ -536,7 +529,7 @@ Node::Node(const unordered_map<char, const char *> &providedOptions, const TorPr
 		if(!errorOccurred) {
 		
 			// Go through all of the node's peers
-			for(list<MwcValidationNode::Peer>::iterator i = node.getPeers().begin(); i != node.getPeers().end(); ++i) {
+			for(list<MwcValidationNode::Peer>::iterator i = node.getPeersBegin(); i != node.getPeersEnd(); ++i) {
 			
 				// Stop peer
 				i->stop();
@@ -619,7 +612,7 @@ Node::~Node() {
 	bool errorOccurred = false;
 	
 	// Go through all of the node's peers
-	for(list<MwcValidationNode::Peer>::iterator i = node.getPeers().begin(); i != node.getPeers().end(); ++i) {
+	for(list<MwcValidationNode::Peer>::iterator i = node.getPeersBegin(); i != node.getPeersEnd(); ++i) {
 	
 		// Stop peer
 		i->stop();

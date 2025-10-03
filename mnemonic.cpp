@@ -2144,7 +2144,8 @@ void Mnemonic::displayPassphrase(const uint8_t seed[SEED_SIZE]) {
 	const uint8_t checksum = (hash[0] >> (numeric_limits<uint8_t>::digits - NUMBER_OF_CHECKSUM_BITS)) & CHECKSUM_MASK;
 	
 	// Initialize word indices
-	size_t wordIndices[NUMBER_OF_WORDS] = {};
+	size_t wordIndices[NUMBER_OF_WORDS];
+	memset(wordIndices, 0, sizeof(wordIndices));
 	
 	// Go through all bytes in the seed and checksum
 	size_t index = 0;
