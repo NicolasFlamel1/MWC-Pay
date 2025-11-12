@@ -41,10 +41,7 @@ Node::Node(const unordered_map<char, const char *> &providedOptions, const TorPr
 	failed(false),
 	
 	// Set payments
-	payments(payments),
-	
-	// Set node
-	node(torProxy.getSocksAddress(), torProxy.getSocksPort())
+	payments(payments)
 {
 
 	// Display message
@@ -190,7 +187,7 @@ Node::Node(const unordered_map<char, const char *> &providedOptions, const TorPr
 	try {
 	
 		// Start node
-		node.start(nodeDnsSeed.empty() ? nullptr : nodeDnsSeed.c_str());
+		node.start(torProxy.getSocksAddress().c_str(), stoul(torProxy.getSocksPort()), nodeDnsSeed.empty() ? nullptr : nodeDnsSeed.c_str());
 	}
 	
 	// Catch errors
