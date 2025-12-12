@@ -9,6 +9,7 @@
 #include "./price_oracles/ascendex.h"
 #include "./price_oracles/coingecko.h"
 #include "./price_oracles/coinstore.h"
+#include "./price_oracles/nonlogs.h"
 #include "./price_oracles/whitebit.h"
 #include "./price_oracles/xt.h"
 
@@ -74,6 +75,9 @@ Price::Price(const unordered_map<char, const char *> &providedOptions, const Tor
 	
 	// Add Coinstore price oracle to list
 	priceOracles.emplace_back(make_unique<Coinstore>(torProxy));
+	
+	// Add NonLogs price oracle to list
+	priceOracles.emplace_back(make_unique<NonLogs>(torProxy));
 	
 	// Add WhiteBIT price oracle to list
 	priceOracles.emplace_back(make_unique<WhiteBit>(torProxy));
