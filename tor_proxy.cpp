@@ -21,10 +21,10 @@ using namespace std;
 
 	// Data directory size
 	static const size_t DATA_DIRECTORY_SIZE = 20;
-
-	// Default Tor SOCKS proxy port
-	static const char *DEFAULT_TOR_SOCKS_PROXY_PORT = "9050";
 #endif
+
+// Default Tor SOCKS proxy port
+static const char *DEFAULT_TOR_SOCKS_PROXY_PORT = "9050";
 
 
 // Supporting function implementation
@@ -39,7 +39,10 @@ TorProxy::TorProxy(const unordered_map<char, const char *> &providedOptions, con
 	failed(false),
 	
 	// Create configuration
-	configuration(tor_main_configuration_new(), tor_main_configuration_free)
+	configuration(tor_main_configuration_new(), tor_main_configuration_free),
+	
+	// SOCKS port
+	socksPort(DEFAULT_TOR_SOCKS_PROXY_PORT)
 {
 
 	// Check if Tor is enabled

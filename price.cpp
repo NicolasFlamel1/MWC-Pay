@@ -6,7 +6,6 @@
 #include "event2/thread.h"
 #include "mpfr.h"
 #include "./price.h"
-#include "./price_oracles/ascendex.h"
 #include "./price_oracles/coingecko.h"
 #include "./price_oracles/coinstore.h"
 #include "./price_oracles/nonlogs.h"
@@ -66,9 +65,6 @@ Price::Price(const unordered_map<char, const char *> &providedOptions, const Tor
 		// Throw exception
 		throw runtime_error("Enabling price threads support failed");
 	}
-	
-	// Add AscendEX price oracle to list
-	priceOracles.emplace_back(make_unique<AscendEx>(torProxy));
 	
 	// Add CoinGecko price oracle to list
 	priceOracles.emplace_back(make_unique<CoinGecko>(torProxy));

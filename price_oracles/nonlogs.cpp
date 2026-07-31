@@ -22,7 +22,7 @@ pair<chrono::time_point<chrono::system_clock>, string> NonLogs::getNewPrice() co
 
 	// Check if creating request failed
 	vector<uint8_t> response;
-	const unique_ptr request = createRequest("api.nonlogs.io", Common::HTTPS_PORT, "/order/orderbook/MWC-USDT?depth=0", response);
+	const unique_ptr request = createRequest("api.nonlogs.io", Common::HTTPS_PORT, "/order/orderbook/MWC-USDT?depth=1", response);
 	if(!request) {
 	
 		// Throw exception
